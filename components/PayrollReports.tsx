@@ -18,11 +18,10 @@ const calculateFromTimes = () => {
     // Calculate worked hours from 7:00 AM onwards only
     const workedHours = Math.max(0, (clockOut.getTime() - effectiveClockIn.getTime()) / (1000 * 60 * 60));
     
-    // Calculate undertime hours (if worked less than 8.5 hours)
-    const standardHoursPerDay = 8.5;
+    // Check for late clock in (after 7:00 AM)
     let undertimeHours = 0;
-    if (workedHours < standardHoursPerDay) {
-      undertimeHours = standardHoursPerDay - workedHours;
+    if (clockIn > shiftStart) {
+      undertimeHours = (clockIn.getTime() - shiftStart.getTime()) / (1000 * 60 * 60);
     }
     
     // Calculate overtime (after 3:30 PM) - but don't automatically add overtime pay
@@ -32,9 +31,13 @@ const calculateFromTimes = () => {
       overtimeHours = Math.max(0, (clockOut.getTime() - shiftEnd.getTime()) / (1000 * 60 * 60));
     }
     
-    // Fixed base salary - always ₱200
-    const baseSalary = 200;
+    // Calculate base salary (capped at ₱200 for 8.5 hours)
+    const standardHoursPerDay = 8.5;
+    const maxBasePay = 200;
     const hourlyRate = 200 / 8.5; // ₱23.53 per hour
+    
+    const dailyBaseHours = Math.min(workedHours, standardHoursPerDay);
+    const baseSalary = Math.min(dailyBaseHours * hourlyRate, maxBasePay);
     
     // Don't automatically calculate overtime pay - it should be manually set based on approved requests
     const overtimePay = 0; // Admin needs to manually set this based on approved overtime requests
@@ -73,12 +76,12 @@ const calculateFromTimes = () => {
                   <p className="text-sm font-medium text-blue-400 mb-1">Payroll Calculation Rules</p>
                   <ul className="text-xs text-blue-300 space-y-1">
                     <li>• Work hours only count from 7:00 AM onwards</li>
-                    <li>• Base pay is fixed at ₱200 per day</li>
-                    <li>• Undertime deduction applies if worked less than 8.5 hours (₱23.53/hour)</li>
+                    <li>• Base pay is capped at ₱200 for 8.5 hours (₱23.53/hour)</li>
                     <li>• Overtime pay (₱35/hour) only applies to approved overtime requests</li>
+                    <li>• Late clock-in (after 7:00 AM) incurs undertime deduction</li>
                     <li>• Overtime hours are calculated but pay requires manual approval</li>
-                    <li>• Final pay = ₱200 + Overtime Pay - Undertime Deduction - Staff House</li>
                   </ul>
                 </div>
               </div>
             </div>
+
