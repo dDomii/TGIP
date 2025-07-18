@@ -860,6 +860,7 @@ export function PayrollReports() {
             </p>
           </div>
         </div>
+          </div>
       )}
 
       {/* Summary Cards */}
