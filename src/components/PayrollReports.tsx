@@ -322,20 +322,29 @@ export function PayrollReports() {
     }
     
     // Calculate base salary (capped at ₱200 for 8.5 hours)
-    const standardHoursPerDay = 8.5;
-    const maxBasePay = 200;
+    const standardHours = 8.5;
+    const basePay = 200;
     const hourlyRate = 200 / 8.5; // ₱23.53 per hour
     
-    const dailyBaseHours = Math.min(workedHours, standardHoursPerDay);
-    const baseSalary = Math.min(dailyBaseHours * hourlyRate, maxBasePay);
-    const overtimePay = overtimeHours * 35;
-    const undertimeDeduction = undertimeHours * hourlyRate;
+    // Base salary calculation with undertime deduction
+    let baseSalary = basePay;
+    let undertimeDeduction = 0;
+    
+    if (workedHours < standardHours) {
+      undertimeDeduction = (standardHours - workedHours) * hourlyRate;
+      baseSalary = basePay; // Keep base at 200, deduction handled separately
+    // Overtime pay only if worked more than 8.5 hours
+    let overtimePay = 0;
+    if (workedHours > standardHours) {
+      const overtimeHours = workedHours - standardHours;
+      overtimePay = overtimeHours * 35; // ₱35/hour for overtime
+    }
     
     setEditForm(prev => ({
       ...prev,
       totalHours: parseFloat(workedHours.toFixed(2)),
-      overtimeHours: parseFloat(overtimeHours.toFixed(2)),
-      undertimeHours: parseFloat(undertimeHours.toFixed(2)),
+      overtimeHours: parseFloat((Math.max(0, workedHours - standardHours)).toFixed(2)),
+      undertimeHours: parseFloat((Math.max(0, standardHours - workedHours)).toFixed(2)),
       baseSalary: parseFloat(baseSalary.toFixed(2)),
       overtimePay: parseFloat(overtimePay.toFixed(2)),
       undertimeDeduction: parseFloat(undertimeDeduction.toFixed(2))
@@ -832,7 +841,7 @@ export function PayrollReports() {
                   <th className="text-left py-3 px-4 font-semibold text-slate-300">Department</th>
                   <th className="text-left py-3 px-4 font-semibold text-slate-300">Time</th>
                   <th className="text-right py-3 px-4 font-semibold text-slate-300">Hours</th>
-                  <th className="text-right py-3 px-4 font-semibold text-slate-300">Base Pay</th>
+                  <th className="text-right py-3 px-4 font-semibold text-slate-300">Base Pay (₱200)</th>
                   <th className="text-right py-3 px-4 font-semibold text-slate-300">Overtime</th>
                   <th className="text-right py-3 px-4 font-semibold text-slate-300">Deductions</th>
                   <th className="text-right py-3 px-4 font-semibold text-slate-300">Total</th>
@@ -873,14 +882,27 @@ export function PayrollReports() {
                         )}
                       </div>
                     </td>
-                    <td className="py-3 px-4 text-right text-white">₱{Number(entry.base_salary).toFixed(2)}</td>
+                    <td className="py-3 px-4 text-right">
+                      <div>
+                        <p className="text-white">₱200.00</p>
+                        {Number(entry.total_hours) < 8.5 && (
+                          <p className="text-sm text-red-400">-₱{((8.5 - Number(entry.total_hours)) * (200/8.5)).toFixed(2)} short</p>
+                        )}
+                      </div>
+                    </td>
                     <td className="py-3 px-4 text-right text-emerald-400">
-                      {entry.overtime_pay > 0 ? `₱${Number(entry.overtime_pay).toFixed(2)}` : '-'}
+                      {(Number(entry.total_hours) >= 8.5 && entry.overtime_pay > 0) ? `₱${Number(entry.overtime_pay).toFixed(2)}` : '-'}
                     </td>
                     <td className="py-3 px-4 text-right text-red-400">
-                      {(entry.undertime_deduction + entry.staff_house_deduction) > 0 
-                        ? `₱${(entry.undertime_deduction + entry.staff_house_deduction).toFixed(2)}` 
-                        : '-'}
+                      <div>
+                        {(parseFloat(entry.undertime_deduction) || 0) > 0 && (
+                          <p className="text-sm">₱{Number(entry.undertime_deduction).toFixed(2)} undertime</p>
+                        )}
+                        {(parseFloat(entry.staff_house_deduction) || 0) > 0 && (
+                          <p className="text-sm">₱{Number(entry.staff_house_deduction).toFixed(2)} staff house</p>
+                        )}
+                        {((parseFloat(entry.undertime_deduction) || 0) + (parseFloat(entry.staff_house_deduction) || 0)) === 0 && '-'}
+                      </div>
                     </td>
                     <td className="py-3 px-4 text-right">
                       <p className="font-bold text-white">₱{Number(entry.total_salary).toFixed(2)}</p>
@@ -1103,9 +1125,8 @@ export function PayrollReports() {
                   <p className="text-sm font-medium text-blue-400 mb-1">Payroll Calculation Rules</p>
                   <ul className="text-xs text-blue-300 space-y-1">
                     <li>• Work hours only count from 7:00 AM onwards</li>
-                    <li>• Base pay is capped at ₱200 for 8.5 hours (₱23.53/hour)</li>
-                    <li>• Overtime rate is ₱35/hour after 3:30 PM</li>
-                    <li>• Late clock-in (after 7:00 AM) incurs undertime deduction</li>
+                    Overtime pay (₱35/hour) is only applied when: 1) Employee works more than 8.5 hours, 
+                    2) Has submitted an overtime request, and 3) Request was approved by administrator.
                   </ul>
                 </div>
               </div>
