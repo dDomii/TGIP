@@ -63,6 +63,10 @@ export function PayrollReports() {
   const [deletingEntry, setDeletingEntry] = useState<PayrollEntry | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('');
+  const [showBulkTotalModal, setShowBulkTotalModal] = useState(false);
+  const [bulkTotalAmount, setBulkTotalAmount] = useState('');
+  const [bulkTotalType, setBulkTotalType] = useState<'fixed' | 'percentage'>('fixed');
+  const [bulkTotalPercentage, setBulkTotalPercentage] = useState('');
   const { token } = useAuth();
 
   useEffect(() => {
