@@ -325,10 +325,8 @@ export function PayrollReports() {
     const standardHoursPerDay = 8.5;
     const hourlyRate = 200 / 8.5; // ₱23.53 per hour
     
-    // Calculate base salary based on actual hours worked
-    // If user works 8.5 hours or more, they get ₱200
-    // If user works less than 8.5 hours, they get proportional pay
-    const baseSalary = workedHours >= standardHoursPerDay ? 200 : workedHours * hourlyRate;
+    // Base salary is always ₱200
+    const baseSalary = 200;
     
     // Don't automatically calculate overtime pay - it should be manually set based on approved requests
     const overtimePay = 0; // Admin needs to manually set this based on approved overtime requests
@@ -1106,7 +1104,7 @@ export function PayrollReports() {
                   <p className="text-sm font-medium text-blue-400 mb-1">Payroll Calculation Rules</p>
                   <ul className="text-xs text-blue-300 space-y-1">
                     <li>• Work hours only count from 7:00 AM onwards</li>
-                    <li>• Base pay: ₱200 for 8.5+ hours, proportional for less (₱23.53/hour)</li>
+                    <li>• Base pay is always ₱200, deductions applied for undertime</li>
                     <li>• Overtime rate is ₱35/hour after 3:30 PM</li>
                     <li>• Late clock-in (after 7:00 AM) incurs undertime deduction</li>
                   </ul>

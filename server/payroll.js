@@ -95,10 +95,8 @@ export async function calculateWeeklyPayroll(userId, weekStart) {
       totalHours += workedHours;
     });
 
-    // Calculate base salary based on actual hours worked
-    // If user works 8.5 hours or more, they get ₱200
-    // If user works less than 8.5 hours, they get proportional pay
-    const baseSalary = totalHours >= standardHoursPerDay ? 200 : totalHours * hourlyRate;
+    // Base salary is always ₱200
+    const baseSalary = 200;
     const overtimePay = overtimeHours * 35;
     const undertimeDeduction = undertimeHours * hourlyRate;
     const staffHouseDeduction = userData.staff_house ? 250 : 0;
@@ -355,10 +353,8 @@ export async function calculatePayrollForSpecificDays(userId, selectedDates) {
       totalHours += workedHours;
     });
 
-    // Calculate base salary based on actual hours worked
-    // If user works 8.5 hours or more, they get ₱200
-    // If user works less than 8.5 hours, they get proportional pay
-    const baseSalary = totalHours >= standardHoursPerDay ? 200 : totalHours * hourlyRate;
+    // Base salary is always ₱200
+    const baseSalary = 200;
     const overtimePay = overtimeHours * 35;
     const undertimeDeduction = undertimeHours * hourlyRate;
     
@@ -389,7 +385,7 @@ export async function calculatePayrollForSpecificDays(userId, selectedDates) {
 export async function calculatePayrollForDateRange(userId, startDate, endDate) {
   try {
     const standardHoursPerDay = 8.5; // Always 8.5 hours for ₱200 base pay
-    const maxBasePay = 200; // Cap base pay at ₱200
+    const hourlyRate = 200 / 8.5; // ₱23.53 per hour
     
     const [entries] = await pool.execute(
       'SELECT * FROM time_entries WHERE user_id = ? AND DATE(clock_in) BETWEEN ? AND ? ORDER BY clock_in',
@@ -468,10 +464,8 @@ export async function calculatePayrollForDateRange(userId, startDate, endDate) {
       totalHours += workedHours;
     });
 
-    // Calculate base salary based on actual hours worked
-    // If user works 8.5 hours or more, they get ₱200
-    // If user works less than 8.5 hours, they get proportional pay
-    const baseSalary = totalHours >= standardHoursPerDay ? 200 : totalHours * hourlyRate;
+    // Base salary is always ₱200
+    const baseSalary = 200;
     const overtimePay = overtimeHours * 35;
     const undertimeDeduction = undertimeHours * hourlyRate;
     
