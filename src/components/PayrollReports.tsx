@@ -1125,6 +1125,8 @@ export function PayrollReports() {
                   <p className="text-xs text-blue-300">
                     Staff house deduction is ₱50 per working day (₱250/week ÷ 5 days). This applies only to users 
                     enrolled in staff house and is calculated based on actual working days in the selected period.
+                  </p>
+                  <ul className="text-xs text-blue-300 mt-1">
                     <li>• Late clock-in (after 7:00 AM) incurs undertime deduction</li>
                   </ul>
                 </div>
@@ -1153,20 +1155,41 @@ export function PayrollReports() {
         </div>
       )}
 
-            <div className="bg-purple-900/20 p-4 rounded-lg mb-6 border border-purple-800/50">
+      {/* Delete Modal */}
       {showDeleteModal && deletingEntry && (
-                <AlertTriangle className="w-5 h-5 text-purple-400 mt-0.5" />
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50">
           <div className="bg-slate-800/95 backdrop-blur-sm rounded-2xl shadow-xl p-6 w-full max-w-md border border-slate-700/50">
             <div className="flex items-center gap-3 mb-4">
               <AlertTriangle className="w-6 h-6 text-red-400" />
               <h3 className="text-lg font-semibold text-white">Delete Payroll Entry</h3>
             </div>
+            
+            <p className="text-slate-300 mb-6">
+              Are you sure you want to delete the payroll entry for <strong>{deletingEntry.username}</strong>?
+            </p>
+            
+            <div className="bg-red-900/20 p-4 rounded-lg mb-6 border border-red-800/50">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-red-400 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-red-400 mb-1">Warning</p>
+                  <p className="text-xs text-red-300">
+                    <strong>Warning:</strong> This action cannot be undone. The payroll entry will be permanently deleted.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-purple-900/20 p-4 rounded-lg mb-6 border border-purple-800/50">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="w-5 h-5 text-purple-400 mt-0.5" />
+                <div>
                   <p className="text-sm font-medium text-purple-400 mb-1">Total Pay Salary Tracking</p>
                   <p className="text-xs text-purple-300">
                     "Total Pay Salary" shows the cumulative total of all salary payments for each user across 
                     all generated payslips. This helps track the total amount paid to each employee over time.
-                  <strong>Warning:</strong> This action cannot be undone. The payroll entry will be permanently deleted.
-                </p>
+                  </p>
+                </div>
               </div>
             </div>
             
