@@ -316,9 +316,7 @@ export function PayrollReports() {
     if (clockIn > shiftStart) {
       undertimeHours = (clockIn.getTime() - shiftStart.getTime()) / (1000 * 60 * 60); 
     }
-    else if (workedHours < 8.5) {
-      undertimeHours = (8.5 - workedHours) / (1000 * 60 * 60);
-    }
+    const baseSalary = maxBasePay; // Always ₱200
     
     // Calculate overtime (after 3:30 PM)
     let overtimeHours = 0;
@@ -331,8 +329,7 @@ export function PayrollReports() {
     const maxBasePay = 200;
     const hourlyRate = 200 / 8.5; // ₱23.53 per hour
     
-    const dailyBaseHours = Math.min(workedHours, standardHoursPerDay);
-    const baseSalary = Math.min(dailyBaseHours * hourlyRate, maxBasePay);
+    const baseSalary = maxBasePay; // Always ₱200
     const overtimePay = overtimeHours * 35;
     const undertimeDeduction = undertimeHours * hourlyRate;
     
