@@ -109,7 +109,6 @@ export async function initializeDatabase() {
       // Columns might already exist, ignore error
     }
 
-
     // Add required_hours column if it doesn't exist
     try {
       await pool.execute(`
