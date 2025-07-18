@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { API_ENDPOINTS, buildApiUrl } from '../config/api';
 import { Calendar, Download, FileText, Users, PhilippinePeso, Clock, Edit3, Save, X, AlertTriangle, CheckCircle, Filter, Search, Eye, Trash2, Play } from 'lucide-react';
+import { Calculator } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { autoTable } from 'jspdf-autotable';
 import { endOfWeek } from 'date-fns';
@@ -796,13 +797,6 @@ export function PayrollReports() {
       {/* Export Buttons */}
       {filteredPayrollData.length > 0 && (
         <div className="flex gap-4 mb-6">
-          <button
-            onClick={() => setShowBulkTotalModal(true)}
-            className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:from-purple-600 hover:to-purple-700 transition-all duration-200 flex items-center gap-2 shadow-lg"
-          >
-            <Calculator className="w-4 h-4" />
-            Bulk Add Total
-          </button>
           <button
             onClick={exportToPDF}
             className="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-lg font-medium hover:from-red-600 hover:to-red-700 transition-all duration-200 flex items-center gap-2 shadow-lg"
