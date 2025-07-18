@@ -66,6 +66,8 @@ export function PayrollReports() {
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [showBulkTotalModal, setShowBulkTotalModal] = useState(false);
   const [bulkTotalAmount, setBulkTotalAmount] = useState('');
+  const [bulkTotalType, setBulkTotalType] = useState<'fixed' | 'percentage'>('fixed');
+  const [bulkTotalPercentage, setBulkTotalPercentage] = useState('');
   const { token } = useAuth();
 
   useEffect(() => {
@@ -1172,67 +1174,6 @@ export function PayrollReports() {
                 className="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white py-2 px-4 rounded-lg font-medium hover:from-red-600 hover:to-red-700 transition-all duration-200"
               >
                 Delete Entry
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Bulk Total Modal */}
-      {showBulkTotalModal && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-800/95 backdrop-blur-sm rounded-2xl shadow-xl p-6 w-full max-w-md border border-slate-700/50">
-            <div className="flex items-center gap-3 mb-4">
-              <Calculator className="w-6 h-6 text-purple-400" />
-              <h3 className="text-lg font-semibold text-white">Bulk Add Total</h3>
-            </div>
-            
-            <div className="mb-6">
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Total Salary Amount (₱)
-              </label>
-              <input
-                type="number"
-                value={bulkTotalAmount}
-                onChange={(e) => setBulkTotalAmount(e.target.value)}
-                className="w-full p-3 bg-slate-700/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white placeholder-slate-400"
-                placeholder="Enter total amount (e.g., 200)"
-                min="0"
-                step="0.01"
-              />
-              <p className="text-xs text-slate-400 mt-2">
-                This will set the total salary to this amount for all {filteredPayrollData.length} employees shown.
-              </p>
-            </div>
-            
-            <div className="bg-yellow-900/20 p-3 rounded-lg border border-yellow-800/50 mb-6">
-              <div className="flex items-start gap-2">
-                <AlertTriangle className="w-4 h-4 text-yellow-400 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-yellow-400 mb-1">Note</p>
-                  <p className="text-xs text-yellow-300">
-                    The system will adjust overtime pay to reach the target total amount. 
-                    Base salary and deductions will remain unchanged.
-                  </p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowBulkTotalModal(false);
-                  setBulkTotalAmount('');
-                }}
-                className="flex-1 bg-slate-700/50 text-slate-300 py-2 px-4 rounded-lg font-medium hover:bg-slate-600/50 transition-all duration-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleBulkTotalUpdate}
-                disabled={loading || !bulkTotalAmount}
-                className="flex-1 bg-gradient-to-r from-purple-500 to-purple-600 text-white py-2 px-4 rounded-lg font-medium hover:from-purple-600 hover:to-purple-700 disabled:opacity-50 transition-all duration-200"
-              >
-                {loading ? 'Updating...' : 'Update All'}
               </button>
             </div>
           </div>
