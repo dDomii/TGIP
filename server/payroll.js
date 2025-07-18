@@ -1,1391 +1,541 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { API_ENDPOINTS, buildApiUrl } from '../config/api';
-import { Calendar, Download, FileText, Users, PhilippinePeso, Clock, Edit3, Save, X, AlertTriangle, CheckCircle, Filter, Search, Eye, Trash2, Play } from 'lucide-react';
-import { jsPDF } from 'jspdf';
-import { autoTable } from 'jspdf-autotable';
-import { endOfWeek } from 'date-fns';
+import { pool } from './database.js';
 
-interface PayrollEntry {
-  id: number;
-  user_id: number;
-  username: string;
-  department: string;
-  week_start: string;
-  week_end: string;
-  total_hours: number;
-  overtime_hours: number;
-  undertime_hours: number;
-  base_salary: number;
-  overtime_pay: number;
-  undertime_deduction: number;
-  staff_house_deduction: number;
-  total_salary: number;
-  total_pay_salary: number;
-  clock_in_time: string;
-  clock_out_time: string;
-  status: string;
-}
+export async function generateWeeklyPayslips(weekStart) {
+  try {
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    const weekEndStr = weekEnd.toISOString().split('T')[0];
 
-const DEPARTMENTS = [
-  'Human Resource',
-  'Marketing', 
-  'Finance',
-  'Account Management',
-  'System Automation',
-  'Sales',
-  'Training',
-  'IT Department'
-];
-
-export function PayrollReports() {
-  const [payrollData, setPayrollData] = useState<PayrollEntry[]>([]);
-  const [selectedWeek, setSelectedWeek] = useState('');
-  const [selectedEndWeek, setSelectedEndWeek] = useState('');
-  const [selectedDates, setSelectedDates] = useState<string[]>([]);
-  const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [generationMode, setGenerationMode] = useState<'week' | 'dates'>('week');
-  const [editingEntry, setEditingEntry] = useState<PayrollEntry | null>(null);
-  const [editForm, setEditForm] = useState({
-    clockIn: '',
-    clockOut: '',
-    totalHours: 0,
-    overtimeHours: 0,
-    undertimeHours: 0,
-    baseSalary: 0,
-    overtimePay: 0,
-    undertimeDeduction: 0,
-    staffHouseDeduction: 0
-  });
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deletingEntry, setDeletingEntry] = useState<PayrollEntry | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedDepartment, setSelectedDepartment] = useState('');
-  const [groupByUser, setGroupByUser] = useState(false);
-  const { token } = useAuth();
-
-  useEffect(() => {
-    fetchUsers();
-    // Get start of week (Sunday)
-    const today = new Date();
-    const currentWeekStart = getWeekStart(today);
-
-    // Get end of week (Saturday) = Sunday + 6 days
-    const currentWeekEnd = getWeekEnd(currentWeekStart);
-
-    setSelectedWeek(currentWeekStart);
-    setSelectedEndWeek(currentWeekEnd);
-
-  }, []);
-
-  const getWeekStart = (date: Date) => {
-    const d = new Date(date);
-    const day = d.getDay();
-    const diff = d.getDate() - day;
-    return new Date(d.setDate(diff)).toISOString().split('T')[0];
-  };
-
-  const getWeekEnd = (weekStart: string) => {
-    const start = new Date(weekStart);
-    const end = new Date(start);
-    end.setDate(start.getDate() + 6);
-    return end.toISOString().split('T')[0];
-  };
-
-  const generateWeekOptions = () => {
-    const weeks = [];
-    const today = new Date();
-    
-    // Generate last 12 weeks
-    for (let i = 0; i < 12; i++) {
-      const weekDate = new Date(today);
-      weekDate.setDate(today.getDate() - (i * 7));
-      const weekStart = getWeekStart(weekDate);
-      const weekEnd = getWeekEnd(weekStart);
-      
-      weeks.push({
-        value: weekStart,
-        label: `${formatDate(weekStart)} - ${formatDate(weekEnd)}`,
-        isCurrent: i === 0
-      });
-    }
-    
-    return weeks;
-  };
-
-  const generateDateOptions = () => {
-    const dates = [];
-    const today = new Date();
-    
-    // Generate last 30 days
-    for (let i = 0; i < 30; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      dates.push(date.toISOString().split('T')[0]);
-    }
-    
-    return dates;
-  };
-
-  const fetchUsers = async () => {
-    try {
-      const response = await fetch(API_ENDPOINTS.USERS, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      setUsers(data.filter((user: any) => user.active));
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    }
-  };
-
-  const generatePayslips = async () => {
-    if (generationMode === 'week' && !selectedWeek) {
-      alert('Please select a week');
-      return;
-    }
-    
-    if (generationMode === 'dates' && selectedDates.length === 0) {
-      alert('Please select at least one date');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      let requestBody: any = {};
-      
-      if (generationMode === 'week') {
-        requestBody.weekStart = selectedWeek;
-        requestBody.startDate = selectedWeek;
-        requestBody.endDate = selectedEndWeek;
-      } else {
-        requestBody.selectedDates = selectedDates;
-      }
-      
-      if (selectedUsers.length > 0) {
-        requestBody.userIds = selectedUsers;
-      }
-
-      const response = await fetch(API_ENDPOINTS.PAYSLIPS_GENERATE, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      const data = await response.json();
-      if (data.length > 0) {
-        alert(`Generated ${data.length} payslips successfully!`);
-        fetchPayrollReport();
-        const audio = new Audio('https://www.myinstants.com/media/sounds/paldoooooo.mp3');
-        audio.currentTime = 1;
-        audio.play();
-      } else {
-        alert('No payslips were generated. Check if users have time entries for the selected period.');
-      }
-    } catch (error) {
-      console.error('Error generating payslips:', error);
-      alert('Failed to generate payslips');
-    }
-    setLoading(false);
-  };
-
-  const fetchPayrollReport = async () => {
-    if (generationMode === 'week' && !selectedWeek) return;
-    if (generationMode === 'dates' && selectedDates.length === 0) return;
-
-    setLoading(true);
-    try {
-      let url = API_ENDPOINTS.PAYROLL_REPORT;
-      
-      if (generationMode === 'week') {
-        url = buildApiUrl('/api/payroll-report', { weekStart: selectedWeek, startDate: selectedWeek, endDate: selectedEndWeek });
-      } else {
-        const datesParam = selectedDates.join(',');
-        url = buildApiUrl('/api/payroll-report', { selectedDates: datesParam });
-      }
-      
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await response.json();
-      setPayrollData(data);
-    } catch (error) {
-      console.error('Error fetching payroll report:', error);
-    }
-    setLoading(false);
-  };
-
-  const releasePayslips = async () => {
-    if (generationMode === 'week' && !selectedWeek) {
-      alert('Please select a week first');
-      return;
-    }
-    
-    if (generationMode === 'dates' && selectedDates.length === 0) {
-      alert('Please select dates first');
-      return;
-    }
-
-    const confirmed = window.confirm(
-      `Are you sure you want to release payslips for the selected ${generationMode === 'week' ? 'week' : 'dates'}? This will make them visible to employees.`
+    // Get all active users
+    const [users] = await pool.execute(
+      'SELECT * FROM users WHERE active = TRUE'
     );
 
-    if (!confirmed) return;
+    const payslips = [];
 
-    setLoading(true);
-    try {
-      let requestBody: any = {};
-      
-      if (generationMode === 'week') {
-        requestBody.selectedDates = [selectedWeek, getWeekEnd(selectedWeek)];
-      } else {
-        requestBody.selectedDates = selectedDates;
-      }
-      
-      if (selectedUsers.length > 0) {
-        requestBody.userIds = selectedUsers;
-      }
+    for (const user of users) {
+      // Get time entries for this user and week
+      const [timeEntries] = await pool.execute(
+        'SELECT * FROM time_entries WHERE user_id = ? AND week_start = ?',
+        [user.id, weekStart]
+      );
 
-      const response = await fetch(API_ENDPOINTS.PAYSLIPS_RELEASE, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(requestBody),
-      });
+      if (timeEntries.length === 0) continue;
 
-      const data = await response.json();
-      if (data.success) {
-        alert(data.message);
-        fetchPayrollReport();
-      } else {
-        alert('Failed to release payslips');
-      }
-    } catch (error) {
-      console.error('Error releasing payslips:', error);
-      alert('Failed to release payslips');
-    }
-    setLoading(false);
-  };
+      let totalHours = 0;
+      let overtimeHours = 0;
+      let undertimeHours = 0;
+      let firstClockIn = null;
+      let lastClockOut = null;
 
-  const handleEditEntry = (entry: PayrollEntry) => {
-    setEditingEntry(entry);
-    setEditForm({
-      clockIn: entry.clock_in_time ? new Date(entry.clock_in_time).toISOString().slice(0, 16) : '',
-      clockOut: entry.clock_out_time ? new Date(entry.clock_out_time).toISOString().slice(0, 16) : '',
-      totalHours: entry.total_hours,
-      overtimeHours: entry.overtime_hours,
-      undertimeHours: entry.undertime_hours,
-      baseSalary: entry.base_salary,
-      overtimePay: entry.overtime_pay,
-      undertimeDeduction: entry.undertime_deduction,
-      staffHouseDeduction: entry.staff_house_deduction
-    });
-    setShowEditModal(true);
-  };
+      // Calculate hours for each day
+      for (const entry of timeEntries) {
+        if (!entry.clock_out) continue;
 
-  const calculateFromTimes = () => {
-    if (!editForm.clockIn || !editForm.clockOut) return;
+        const clockIn = new Date(entry.clock_in);
+        const clockOut = new Date(entry.clock_out);
 
-    const clockIn = new Date(editForm.clockIn);
-    const clockOut = new Date(editForm.clockOut);
-    
-    // Define shift start time (7:00 AM)
-    const shiftStart = new Date(clockIn);
-    shiftStart.setHours(7, 0, 0, 0);
-    
-    // Define shift end time (3:30 PM)
-    const shiftEnd = new Date(clockIn);
-    shiftEnd.setHours(15, 30, 0, 0);
-    
-    // Work hours only count from 7:00 AM onwards
-    const effectiveClockIn = clockIn < shiftStart ? shiftStart : clockIn;
-    
-    // Calculate worked hours from 7:00 AM onwards only
-    const workedHours = Math.max(0, (clockOut.getTime() - effectiveClockIn.getTime()) / (1000 * 60 * 60));
-    
-    // Check for late clock in (after 7:00 AM)
-    let undertimeHours = 0;
-    if (clockIn > shiftStart) {
-      undertimeHours = (clockIn.getTime() - shiftStart.getTime()) / (1000 * 60 * 60); 
-    }
-    else if (workedHours < 8.5) {
-      undertimeHours = (8.5 - workedHours) / (1000 * 60 * 60);
-    }
-    
-    // Calculate overtime (after 3:30 PM)
-    let overtimeHours = 0;
-    if (clockOut > shiftEnd) {
-      overtimeHours = Math.max(0, (clockOut.getTime() - shiftEnd.getTime()) / (1000 * 60 * 60));
-    }
-    
-    // Calculate base salary (capped at ₱200 for 8.5 hours)
-    const standardHoursPerDay = 8.5;
-    const maxBasePay = 200;
-    const hourlyRate = 200 / 8.5; // ₱23.53 per hour
-    
-    const dailyBaseHours = Math.min(workedHours, standardHoursPerDay);
-    const baseSalary = Math.min(dailyBaseHours * hourlyRate, maxBasePay);
-    const overtimePay = overtimeHours * 35;
-    const undertimeDeduction = undertimeHours * hourlyRate;
-    
-    setEditForm(prev => ({
-      ...prev,
-      totalHours: parseFloat(workedHours.toFixed(2)),
-      overtimeHours: parseFloat(overtimeHours.toFixed(2)),
-      undertimeHours: parseFloat(undertimeHours.toFixed(2)),
-      baseSalary: parseFloat(baseSalary.toFixed(2)),
-      overtimePay: parseFloat(overtimePay.toFixed(2)),
-      undertimeDeduction: parseFloat(undertimeDeduction.toFixed(2))
-    }));
-  };
+        // Track first clock in and last clock out for the week
+        if (!firstClockIn || clockIn < firstClockIn) {
+          firstClockIn = clockIn;
+        }
+        if (!lastClockOut || clockOut > lastClockOut) {
+          lastClockOut = clockOut;
+        }
 
-  const saveEditedEntry = async () => {
-    if (!editingEntry) return;
-
-    try {
-      const response = await fetch(`${API_ENDPOINTS.PAYROLL}/${editingEntry.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(editForm),
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setShowEditModal(false);
-        setEditingEntry(null);
-        fetchPayrollReport();
-        alert('Payroll entry updated successfully!');
-      } else {
-        alert(data.message || 'Failed to update payroll entry');
-      }
-    } catch (error) {
-      console.error('Error updating payroll entry:', error);
-      alert('Failed to update payroll entry');
-    }
-  };
-
-  const handleDeleteEntry = async () => {
-    if (!deletingEntry) return;
-
-    try {
-      const response = await fetch(`http://192.168.100.60:3001/api/payroll/${deletingEntry.id}`, {
-        method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      const data = await response.json();
-      if (data.success) {
-        setShowDeleteModal(false);
-        setDeletingEntry(null);
-        fetchPayrollReport();
-        alert('Payroll entry deleted successfully!');
-      } else {
-        alert(data.message || 'Failed to delete payroll entry');
-      }
-    } catch (error) {
-      console.error('Error deleting payroll entry:', error);
-      alert('Failed to delete payroll entry');
-    }
-  };
-
-  // Group payroll data by user when groupByUser is enabled
-  const getGroupedPayrollData = () => {
-    if (!groupByUser) return payrollData;
-    
-    const grouped = payrollData.reduce((acc, entry) => {
-      const userId = entry.user_id;
-      if (!acc[userId]) {
-        acc[userId] = {
-          username: entry.username,
-          department: entry.department,
-          entries: [],
-          totals: {
-            total_hours: 0,
-            overtime_hours: 0,
-            undertime_hours: 0,
-            base_salary: 0,
-            overtime_pay: 0,
-            undertime_deduction: 0,
-            staff_house_deduction: 0,
-            total_salary: 0
-          }
-        };
-      }
-      
-      acc[userId].entries.push(entry);
-      acc[userId].totals.total_hours += parseFloat(entry.total_hours) || 0;
-      acc[userId].totals.overtime_hours += parseFloat(entry.overtime_hours) || 0;
-      acc[userId].totals.undertime_hours += parseFloat(entry.undertime_hours) || 0;
-      acc[userId].totals.base_salary += parseFloat(entry.base_salary) || 0;
-      acc[userId].totals.overtime_pay += parseFloat(entry.overtime_pay) || 0;
-      acc[userId].totals.undertime_deduction += parseFloat(entry.undertime_deduction) || 0;
-      acc[userId].totals.staff_house_deduction += parseFloat(entry.staff_house_deduction) || 0;
-      acc[userId].totals.total_salary += parseFloat(entry.total_salary) || 0;
-      
-      return acc;
-    }, {});
-    
-    return Object.values(grouped).sort((a, b) => a.username.localeCompare(b.username));
-  };
-
-  const exportToPDF = () => {
-    const dataToExport = groupByUser ? getGroupedPayrollData() : payrollData;
-    if (dataToExport.length === 0) return;
-
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.width;
-    
-    // Title
-    doc.setFontSize(16);
-    doc.text('Payroll Report', pageWidth / 2, 20, { align: 'center' });
-    
-    // Date range
-    doc.setFontSize(12);
-    let dateRange = '';
-    if (generationMode === 'week') {
-      dateRange = `Week: ${formatDate(selectedWeek)} - ${formatDate(getWeekEnd(selectedWeek))}`;
-    } else {
-      dateRange = selectedDates.length > 1 
-        ? `${selectedDates[0]} to ${selectedDates[selectedDates.length - 1]}`
-        : selectedDates[0];
-    }
-    doc.text(`Period: ${dateRange}`, pageWidth / 2, 30, { align: 'center' });
-    
-    // Table data
-    const tableHeaders = [
-      { text: 'Employee', style: 'tableHeader' },
-      { text: 'Department', style: 'tableHeader' },
-      ...(groupByUser ? [] : [{ text: 'Period', style: 'tableHeader' }]),
-      { text: 'Hours', style: 'tableHeader' },
-      { text: 'OT Hours', style: 'tableHeader' },
-      { text: 'Base Pay', style: 'tableHeader' },
-      { text: 'OT Pay', style: 'tableHeader' },
-      { text: 'Deductions', style: 'tableHeader' },
-      { text: 'Total', style: 'tableHeader' }
-    ];
-
-    const tableBody = groupByUser 
-      ? dataToExport.map(group => [
-          group.username,
-          group.department,
-          `${group.totals.total_hours.toFixed(1)}h`,
-          `${group.totals.overtime_hours.toFixed(1)}h`,
-          formatCurrency(group.totals.base_salary),
-          formatCurrency(group.totals.overtime_pay),
-          formatCurrency(group.totals.undertime_deduction + group.totals.staff_house_deduction),
-          formatCurrency(group.totals.total_salary)
-        ])
-      : dataToExport.map(entry => [
-          entry.username,
-          entry.department,
-          `${formatDate(entry.week_start)} - ${formatDate(entry.week_end)}`,
-          `${parseFloat(entry.total_hours).toFixed(1)}h`,
-          `${parseFloat(entry.overtime_hours).toFixed(1)}h`,
-          formatCurrency(parseFloat(entry.base_salary)),
-          formatCurrency(parseFloat(entry.overtime_pay)),
-          formatCurrency(parseFloat(entry.undertime_deduction) + parseFloat(entry.staff_house_deduction)),
-          formatCurrency(parseFloat(entry.total_salary))
-        ]);
-
-    autoTable(doc, {
-      head: [['Employee', 'Department', 'Hours', 'OT Hours', 'Base Pay', 'OT Pay', 'Undertime', 'Staff House', 'Total', 'Total Pay', 'Status']],
-      body: tableBody,
-      startY: 40,
-      styles: { fontSize: 8 },
-      headStyles: { fillColor: [16, 185, 129] },
-    });
-
-    doc.save(`payroll_report_${dateRange.replace(/\s+/g, '_')}.pdf`);
-  };
-
-  const exportToCSV = () => {
-    const dataToExport = groupByUser ? getGroupedPayrollData() : payrollData;
-    if (dataToExport.length === 0) return;
-
-    const headers = groupByUser ? [
-      'Employee',
-      'Department', 
-      'Total Hours',
-      'Overtime Hours',
-      'Base Salary (₱)',
-      'Overtime Pay (₱)',
-      'Total Deductions (₱)',
-      'Total Salary (₱)'
-    ] : [
-      'Employee',
-      'Department',
-      'Clock In',
-      'Clock Out',
-      'Total Hours',
-      'Overtime Hours',
-      'Undertime Hours',
-      'Base Salary (₱)',
-      'Overtime Pay (₱)',
-      'Undertime Deduction (₱)',
-      'Staff House Deduction (₱)',
-      'Total Salary (₱)',
-      'Total Pay Salary (₱)',
-      'Status'
-    ];
-
-    const rows = groupByUser
-      ? dataToExport.map(group => [
-          group.username,
-          group.department,
-          group.totals.total_hours.toFixed(1),
-          group.totals.overtime_hours.toFixed(1),
-          group.totals.base_salary.toFixed(2),
-          group.totals.overtime_pay.toFixed(2),
-          (group.totals.undertime_deduction + group.totals.staff_house_deduction).toFixed(2),
-          group.totals.total_salary.toFixed(2)
-        ])
-      : dataToExport.map(entry => [
-          entry.username,
-          entry.department,
-          `${formatDate(entry.week_start)} - ${formatDate(entry.week_end)}`,
-          parseFloat(entry.total_hours).toFixed(1),
-          parseFloat(entry.overtime_hours).toFixed(1),
-          parseFloat(entry.base_salary).toFixed(2),
-          parseFloat(entry.overtime_pay).toFixed(2),
-          (parseFloat(entry.undertime_deduction) + parseFloat(entry.staff_house_deduction)).toFixed(2),
-          parseFloat(entry.total_salary).toFixed(2)
-        ]);
-
-    const csvContent = [headers, ...rows]
-      .map(row => row.map(field => `"${field}"`).join(','))
-      .join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `payroll_report_${groupByUser ? 'grouped_' : ''}${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-  };
-
-  const handleDateToggle = (date: string) => {
-    setSelectedDates(prev => {
-      if (prev.includes(date)) {
-        return prev.filter(d => d !== date);
-      } else {
-        return [...prev, date].sort();
-      }
-    });
-  };
-
-  const handleUserToggle = (userId: number) => {
-    setSelectedUsers(prev => {
-      if (prev.includes(userId)) {
-        return prev.filter(id => id !== userId);
-      } else {
-        return [...prev, userId];
-      }
-    });
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-    });
-  };
-
-  const filteredPayrollData = payrollData.filter(entry => {
-    const matchesSearch = entry.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         entry.department.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDepartment = selectedDepartment === '' || entry.department === selectedDepartment;
-    return matchesSearch && matchesDepartment;
-  });
-
-  const totalSalary = filteredPayrollData.reduce((sum, entry) => sum + entry.total_salary, 0);
-  const totalPaySalary = filteredPayrollData.reduce((sum, entry) => sum + entry.total_pay_salary, 0);
-  const totalHours = filteredPayrollData.reduce((sum, entry) => sum + entry.total_hours, 0);
-  const totalOvertimeHours = filteredPayrollData.reduce((sum, entry) => sum + entry.overtime_hours, 0);
-
-  const weekOptions = generateWeekOptions();
-  const dateOptions = generateDateOptions();
-
-  const calculateTotals = () => {
-    const dataToCalculate = groupByUser ? getGroupedPayrollData() : payrollData;
-    
-    if (groupByUser) {
-      return dataToCalculate.reduce((totals, group) => ({
-        totalHours: totals.totalHours + group.totals.total_hours,
-        overtimeHours: totals.overtimeHours + group.totals.overtime_hours,
-        baseSalary: totals.baseSalary + group.totals.base_salary,
-        overtimePay: totals.overtimePay + group.totals.overtime_pay,
-        totalDeductions: totals.totalDeductions + group.totals.undertime_deduction + group.totals.staff_house_deduction,
-        totalSalary: totals.totalSalary + group.totals.total_salary
-      }), {
-        totalHours: 0,
-        overtimeHours: 0,
-        baseSalary: 0,
-        overtimePay: 0,
-        totalDeductions: 0,
-        totalSalary: 0
-      });
-    }
-    
-    return dataToCalculate.reduce((totals, entry) => ({
-      totalHours: totals.totalHours + (parseFloat(entry.total_hours) || 0),
-      overtimeHours: totals.overtimeHours + (parseFloat(entry.overtime_hours) || 0),
-      baseSalary: totals.baseSalary + (parseFloat(entry.base_salary) || 0),
-      overtimePay: totals.overtimePay + (parseFloat(entry.overtime_pay) || 0),
-      totalDeductions: totals.totalDeductions + (parseFloat(entry.undertime_deduction) || 0) + (parseFloat(entry.staff_house_deduction) || 0),
-      totalSalary: totals.totalSalary + (parseFloat(entry.total_salary) || 0)
-    }), {
-      totalHours: 0,
-      overtimeHours: 0,
-      baseSalary: 0,
-      overtimePay: 0,
-      totalDeductions: 0,
-      totalSalary: 0
-    });
-  };
-
-  const totals = calculateTotals();
-  const groupedData = getGroupedPayrollData();
-
-  return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-white">Payroll Management</h2>
-          <p className="text-slate-400">Generate and manage employee payslips</p>
-        </div>
-      </div>
-
-      {/* Generation Mode Selection */}
-      <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl p-6 mb-6 shadow-lg border border-slate-700/50">
-        <h3 className="text-lg font-semibold text-white mb-4">Payroll Generation Mode</h3>
+        // Define shift times for this day
+        const shiftStart = new Date(clockIn);
+        shiftStart.setHours(7, 0, 0, 0); // 7:00 AM
         
-        <div className="flex gap-4 mb-6">
-          <label className="flex items-center space-x-3 cursor-pointer hidden">
-            <input
-              type="radio"
-              value="week"
-              checked={generationMode === 'week'}
-              onChange={(e) => setGenerationMode(e.target.value as 'week' | 'dates')}
-              className="text-emerald-600 focus:ring-emerald-500"
-            />
-            <span className="text-slate-300 font-medium">Weekly Payroll</span>
-          </label>
-          <label className="flex items-center space-x-3 cursor-pointer">
-            <input
-              type="radio"
-              value="dates"
-              checked={generationMode === 'dates'}
-              onChange={(e) => setGenerationMode(e.target.value as 'week' | 'dates')}
-              className="text-emerald-600 focus:ring-emerald-500"
-            />
-            <span className="text-slate-300 font-medium">Specific Dates</span>
-          </label>
-        </div>
+        const shiftEnd = new Date(clockIn);
+        shiftEnd.setHours(15, 30, 0, 0); // 3:30 PM
 
-        <div className="grid lg:grid-cols-2 gap-6">
-          {/* Week/Date Selection */}
-          <div>
-            {generationMode === 'week' ? (
-              <div className='hidden'>
-                <label className="block text-sm font-medium text-slate-300 mb-3">
-                  Select Week
-                </label>
-                <select
-                  value={selectedWeek}
-                  onChange={(e) => setSelectedWeek(e.target.value)}
-                  className="w-full p-3 bg-slate-700/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-white"
-                >
-                  {weekOptions.map(week => (
-                    <option key={week.value} value={week.value}>
-                      {week.label} {week.isCurrent ? '(Current Week)' : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ) : (
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-3">
-                  Select Dates ({selectedDates.length} selected)
-                </label>
-                <div className="bg-slate-700/30 rounded-lg p-4 max-h-60 overflow-y-auto border border-slate-600/50">
-                  <div className="grid grid-cols-2 gap-2">
-                    {dateOptions.map(date => (
-                      <label key={date} className="flex items-center space-x-2 p-2 hover:bg-slate-600/30 rounded cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={selectedDates.includes(date)}
-                          onChange={() => handleDateToggle(date)}
-                          className="rounded border-slate-600 text-emerald-600 focus:ring-emerald-500 bg-slate-700/50"
-                        />
-                        <span className="text-sm text-slate-300">
-                          {new Date(date).toLocaleDateString('en-US', { 
-                            weekday: 'short', 
-                            month: 'short', 
-                            day: 'numeric' 
-                          })}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
+        // Calculate worked hours from 7:00 AM onwards only
+        const effectiveClockIn = clockIn < shiftStart ? shiftStart : clockIn;
+        const dailyWorkedHours = Math.max(0, (clockOut.getTime() - effectiveClockIn.getTime()) / (1000 * 60 * 60));
+        
+        // Standard work day is 8.5 hours (including 30-minute break)
+        const standardHoursPerDay = 8.5;
+        
+        // Calculate daily undertime (if worked less than 8.5 hours)
+        if (dailyWorkedHours < standardHoursPerDay) {
+          undertimeHours += (standardHoursPerDay - dailyWorkedHours);
+        }
+        
+        // Calculate overtime (after 3:30 PM) - only if approved
+        if (clockOut > shiftEnd && entry.overtime_approved === true) {
+          const dailyOvertimeHours = Math.max(0, (clockOut.getTime() - shiftEnd.getTime()) / (1000 * 60 * 60));
+          overtimeHours += dailyOvertimeHours;
+        }
 
-          {/* User Selection */}
-          <div>
-            <label className="block text-sm font-medium text-slate-300 mb-3">
-              Select Users ({selectedUsers.length > 0 ? selectedUsers.length : 'All'} selected)
-            </label>
-            <div className="bg-slate-700/30 rounded-lg p-4 max-h-60 overflow-y-auto border border-slate-600/50">
-              <div className="space-y-2">
-                <label className="flex items-center space-x-2 p-2 hover:bg-slate-600/30 rounded cursor-pointer border-b border-slate-600/30">
-                  <input
-                    type="checkbox"
-                    checked={selectedUsers.length === 0}
-                    onChange={() => setSelectedUsers([])}
-                    className="rounded border-slate-600 text-emerald-600 focus:ring-emerald-500 bg-slate-700/50"
-                  />
-                  <span className="text-sm font-medium text-emerald-400">All Users</span>
-                </label>
-                {users.map(user => (
-                  <label key={user.id} className="flex items-center space-x-2 p-2 hover:bg-slate-600/30 rounded cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={selectedUsers.includes(user.id)}
-                      onChange={() => handleUserToggle(user.id)}
-                      className="rounded border-slate-600 text-emerald-600 focus:ring-emerald-500 bg-slate-700/50"
-                    />
-                    <span className="text-sm text-slate-300">{user.username}</span>
-                    <span className="text-xs text-slate-400">({user.department})</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
+        totalHours += dailyWorkedHours;
+      }
 
-        {/* Action Buttons */}
-        <div className="flex gap-4 mt-6">
-          <button
-            onClick={generatePayslips}
-            disabled={loading || (generationMode === 'week' && !selectedWeek) || (generationMode === 'dates' && selectedDates.length === 0)}
-            className="bg-gradient-to-r from-emerald-500 to-green-600 text-white px-6 py-3 rounded-lg font-medium hover:from-emerald-600 hover:to-green-700 disabled:opacity-50 btn-enhanced flex items-center gap-2 shadow-lg"
-          >
-            <FileText className="w-4 h-4" />
-            {loading ? 'Generating...' : 'Generate Payslips'}
-          </button>
-          
-          <button
-            onClick={fetchPayrollReport}
-            disabled={loading || (generationMode === 'week' && !selectedWeek) || (generationMode === 'dates' && selectedDates.length === 0)}
-            className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:from-blue-600 hover:to-blue-700 disabled:opacity-50 btn-enhanced flex items-center gap-2 shadow-lg"
-          >
-            <Eye className="w-4 h-4" />
-            {loading ? 'Loading...' : 'View Report'}
-          </button>
-          
-          <button
-            onClick={releasePayslips}
-            disabled={loading || (generationMode === 'week' && !selectedWeek) || (generationMode === 'dates' && selectedDates.length === 0)}
-            className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-3 rounded-lg font-medium hover:from-orange-600 hover:to-orange-700 disabled:opacity-50 btn-enhanced flex items-center gap-2 shadow-lg"
-          >
-            <CheckCircle className="w-4 h-4" />
-            Release Payslips
-          </button>
-        </div>
-      </div>
+      // Fixed base salary calculation
+      const baseSalary = 200; // Always ₱200 base pay
+      
+      // Calculate overtime pay (₱35/hour for approved overtime only)
+      const overtimePay = overtimeHours * 35;
+      
+      // Calculate undertime deduction (₱23.53/hour for hours not worked)
+      const hourlyRate = 200 / 8.5; // ₱23.53 per hour
+      const undertimeDeduction = undertimeHours * hourlyRate;
+      
+      // Staff house deduction
+      const staffHouseDeduction = user.staff_house ? 250 : 0;
+      
+      // Calculate total salary
+      const totalSalary = baseSalary + overtimePay - undertimeDeduction - staffHouseDeduction;
 
-      {/* Search and Filter */}
-      {payrollData.length > 0 && (
-        <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl p-6 mb-6 shadow-lg border border-slate-700/50">
-          <div className="grid md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Search Employees
-              </label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-slate-700/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-white placeholder-slate-400"
-                  placeholder="Search by name or department..."
-                />
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Filter by Department
-              </label>
-              <div className="relative">
-                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                <select
-                  value={selectedDepartment}
-                  onChange={(e) => setSelectedDepartment(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-slate-700/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-white"
-                >
-                  <option value="">All Departments</option>
-                  {DEPARTMENTS.map(dept => (
-                    <option key={dept} value={dept}>{dept}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          
-          <div>
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={groupByUser}
-                onChange={(e) => setGroupByUser(e.target.checked)}
-                className="rounded border-slate-600 text-emerald-600 focus:ring-emerald-500 bg-slate-700/50"
-              />
-              <span className="text-sm text-slate-300">Group by User</span>
-            </label>
-            <p className="text-xs text-slate-400 mt-1">
-              Show total amounts per user instead of individual entries
-            </p>
-          </div>
-        </div>
-        </div>
-      )}
+      // Check if payslip already exists
+      const [existingPayslip] = await pool.execute(
+        'SELECT id FROM payslips WHERE user_id = ? AND week_start = ? AND week_end = ?',
+        [user.id, weekStart, weekEndStr]
+      );
 
-      {/* Summary Cards */}
-      {filteredPayrollData.length > 0 && (
-        <div className="grid md:grid-cols-5 gap-4 mb-6">
-          <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-slate-700/50">
-            <div className="text-center">
-              <p className="text-sm text-slate-400">{groupByUser ? 'Total Users' : 'Total Entries'}</p>
-              <p className="text-2xl font-bold text-blue-400">
-                {groupByUser ? groupedData.length : payrollData.length}
-              </p>
-            </div>
-          </div>
+      if (existingPayslip.length > 0) {
+        // Update existing payslip
+        await pool.execute(
+          `UPDATE payslips SET 
+           total_hours = ?, overtime_hours = ?, undertime_hours = ?,
+           base_salary = ?, overtime_pay = ?, undertime_deduction = ?,
+           staff_house_deduction = ?, total_salary = ?,
+           clock_in_time = ?, clock_out_time = ?
+           WHERE id = ?`,
+          [
+            totalHours, overtimeHours, undertimeHours,
+            baseSalary, overtimePay, undertimeDeduction,
+            staffHouseDeduction, totalSalary,
+            firstClockIn, lastClockOut,
+            existingPayslip[0].id
+          ]
+        );
+      } else {
+        // Create new payslip
+        const [result] = await pool.execute(
+          `INSERT INTO payslips 
+           (user_id, week_start, week_end, total_hours, overtime_hours, undertime_hours,
+            base_salary, overtime_pay, undertime_deduction, staff_house_deduction, 
+            total_salary, clock_in_time, clock_out_time, status) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+          [
+            user.id, weekStart, weekEndStr, totalHours, overtimeHours, undertimeHours,
+            baseSalary, overtimePay, undertimeDeduction, staffHouseDeduction,
+            totalSalary, firstClockIn, lastClockOut
+          ]
+        );
+      }
 
-          <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-slate-700/50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-400">Total Salary</p>
-                <p className="text-2xl font-bold text-emerald-400">₱{Number(totalSalary).toFixed(2)}</p>
-              </div>
-              <div className="bg-gradient-to-br from-emerald-500/20 to-green-600/20 p-3 rounded-lg">
-                <PhilippinePeso className="w-6 h-6 text-emerald-400" />
-              </div>
-            </div>
-          </div>
+      payslips.push({
+        user_id: user.id,
+        username: user.username,
+        department: user.department,
+        total_hours: totalHours,
+        overtime_hours: overtimeHours,
+        undertime_hours: undertimeHours,
+        base_salary: baseSalary,
+        overtime_pay: overtimePay,
+        undertime_deduction: undertimeDeduction,
+        staff_house_deduction: staffHouseDeduction,
+        total_salary: totalSalary
+      });
+    }
 
-          <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-slate-700/50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-400">Total Pay Salary</p>
-                <p className="text-2xl font-bold text-purple-400">₱{Number(totalPaySalary).toFixed(2)}</p>
-              </div>
-              <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 p-3 rounded-lg">
-                <PhilippinePeso className="w-6 h-6 text-purple-400" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-slate-700/50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-400">Total Hours</p>
-                <p className="text-2xl font-bold text-blue-400">{Number(totalHours).toFixed(1)}h</p>
-              </div>
-              <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 p-3 rounded-lg">
-                <Clock className="w-6 h-6 text-blue-400" />
-              </div>
-            </div>
-          </div>
+    return { success: true, payslips };
+  } catch (error) {
+    console.error('Error generating weekly payslips:', error);
+    return { success: false, message: 'Server error' };
+  }
+}
 
-          <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-slate-700/50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-400">Overtime Hours</p>
-                <p className="text-2xl font-bold text-orange-400">{Number(totalOvertimeHours).toFixed(1)}h</p>
-              </div>
-              <div className="bg-gradient-to-br from-orange-500/20 to-orange-600/20 p-3 rounded-lg">
-                <Clock className="w-6 h-6 text-orange-400" />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+export async function generatePayslipsForDateRange(startDate, endDate) {
+  try {
+    // Get all active users
+    const [users] = await pool.execute(
+      'SELECT * FROM users WHERE active = TRUE'
+    );
 
-      {/* Export Buttons */}
-      {filteredPayrollData.length > 0 && (
-        <div className="flex gap-4 mb-6">
-          <button
-            onClick={exportToPDF}
-            className="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-lg font-medium hover:from-red-600 hover:to-red-700 transition-all duration-200 flex items-center gap-2 shadow-lg"
-          >
-            <Download className="w-4 h-4" />
-            Export PDF
-          </button>
-          <button
-            onClick={exportToCSV}
-            className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-lg font-medium hover:from-green-600 hover:to-green-700 transition-all duration-200 flex items-center gap-2 shadow-lg"
-          >
-            <Download className="w-4 h-4" />
-            Export CSV
-          </button>
-        </div>
-      )}
+    const payslips = [];
 
-      {/* Payroll Table */}
-      {filteredPayrollData.length > 0 ? (
-        <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden border border-slate-700/50">
-          <div className="bg-slate-700/50 px-6 py-4 border-b border-slate-600/50">
-            <h3 className="text-lg font-semibold text-white">
-              Payroll Report {groupByUser ? '(Grouped by User)' : ''} - {generationMode === 'week' 
-                ? `Week: ${formatDate(selectedWeek)} - ${formatDate(getWeekEnd(selectedWeek))}`
-                : selectedDates.length > 1 
-                  ? `${selectedDates[0]} to ${selectedDates[selectedDates.length - 1]}`
-                  : selectedDates[0]
-              }
-            </h3>
-            <p className="text-sm text-slate-400 mt-1">
-              {groupByUser ? `${groupedData.length} users` : `${payrollData.length} entries`} • Period Total: ₱{Number(totalSalary).toFixed(2)} • Cumulative Total: ₱{Number(totalPaySalary).toFixed(2)}
-            </p>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full">
-              <thead className="bg-slate-700/50">
-                <tr>
-                  <th className="text-left py-3 px-4 font-semibold text-slate-300">Employee</th>
-                  <th className="text-left py-3 px-4 font-semibold text-slate-300">Department</th>
-                  {!groupByUser && (
-                    <th className="text-left py-3 px-4 font-semibold text-slate-300">Time</th>
-                  )}
-                  <th className="text-right py-3 px-4 font-semibold text-slate-300">Hours</th>
-                  <th className="text-right py-3 px-4 font-semibold text-slate-300">Base Pay</th>
-                  <th className="text-right py-3 px-4 font-semibold text-slate-300">Overtime</th>
-                  <th className="text-right py-3 px-4 font-semibold text-slate-300">Deductions</th>
-                  <th className="text-right py-3 px-4 font-semibold text-slate-300">Total</th>
-                  <th className="text-right py-3 px-4 font-semibold text-slate-300">Total Pay</th>
-                  <th className="text-center py-3 px-4 font-semibold text-slate-300">Status</th>
-                  {!groupByUser && (
-                    <th className="text-center py-3 px-4 font-semibold text-slate-300">Actions</th>
-                  )}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-700/50">
-                {groupByUser ? (
-                  groupedData.map((group, index) => (
-                    <tr key={`group-${index}`} className="hover:bg-slate-700/30 transition-colors">
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-3">
-                          <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 p-2 rounded-lg">
-                            <Users className="w-4 h-4 text-purple-400" />
-                          </div>
-                          <div>
-                            <span className="font-medium text-white">{group.username}</span>
-                            <p className="text-xs text-slate-400">{group.entries.length} entries</p>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-slate-300">{group.department}</td>
-                      <td className="py-3 px-4 text-right text-white">
-                        {group.totals.total_hours.toFixed(1)}h
-                        {group.totals.overtime_hours > 0 && (
-                          <p className="text-sm text-orange-400">+{group.totals.overtime_hours.toFixed(1)}h OT</p>
-                        )}
-                      </td>
-                      <td className="py-3 px-4 text-right text-white">₱{group.totals.base_salary.toFixed(2)}</td>
-                      <td className="py-3 px-4 text-right text-emerald-400">
-                        {group.totals.overtime_pay > 0 ? `₱${group.totals.overtime_pay.toFixed(2)}` : '-'}
-                      </td>
-                      <td className="py-3 px-4 text-right text-red-400">
-                        {(group.totals.undertime_deduction + group.totals.staff_house_deduction) > 0 
-                          ? `₱${(group.totals.undertime_deduction + group.totals.staff_house_deduction).toFixed(2)}` 
-                          : '-'}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <p className="font-bold text-white">₱{group.totals.total_salary.toFixed(2)}</p>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <p className="font-bold text-purple-400">₱{group.totals.total_salary.toFixed(2)}</p>
-                        <p className="text-xs text-slate-400">Grouped</p>
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-900/20 text-blue-400 border border-blue-800/50">
-                          Grouped
-                        </span>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  filteredPayrollData.map((entry) => (
-                    <tr key={entry.id} className="hover:bg-slate-700/30 transition-colors">
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-3">
-                          <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 p-2 rounded-lg">
-                            <Users className="w-4 h-4 text-blue-400" />
-                          </div>
-                          <span className="font-medium text-white">{entry.username}</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-slate-300">{entry.department}</td>
-                      <td className="py-3 px-4">
-                        <div className="text-sm">
-                          <p className="text-slate-300">
-                            In: {entry.clock_in_time ? new Date(entry.clock_in_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
-                          </p>
-                          <p className="text-slate-400">
-                            Out: {entry.clock_out_time ? new Date(entry.clock_out_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
-                          </p>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <div>
-                          <p className="text-white">{Number(entry.total_hours).toFixed(2)}h</p>
-                          {entry.overtime_hours > 0 && (
-                            <p className="text-sm text-orange-400">+{Number(entry.overtime_hours).toFixed(2)}h OT</p>
-                          )}
-                          {entry.undertime_hours > 0 && (
-                            <p className="text-sm text-red-400">-{Number(entry.undertime_hours).toFixed(2)}h late</p>
-                          )}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-right text-white">₱{Number(entry.base_salary).toFixed(2)}</td>
-                      <td className="py-3 px-4 text-right text-emerald-400">
-                        {entry.overtime_pay > 0 ? `₱${Number(entry.overtime_pay).toFixed(2)}` : '-'}
-                      </td>
-                      <td className="py-3 px-4 text-right text-red-400">
-                        {(entry.undertime_deduction + entry.staff_house_deduction) > 0 
-                          ? `₱${(entry.undertime_deduction + entry.staff_house_deduction).toFixed(2)}` 
-                          : '-'}
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <p className="font-bold text-white">₱{Number(entry.total_salary).toFixed(2)}</p>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <p className="font-bold text-purple-400">₱{Number(entry.total_pay_salary).toFixed(2)}</p>
-                        <p className="text-xs text-slate-400">Cumulative</p>
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          entry.status === 'released' 
-                            ? 'bg-emerald-900/20 text-emerald-400 border border-emerald-800/50'
-                            : 'bg-yellow-900/20 text-yellow-400 border border-yellow-800/50'
-                        }`}>
-                          {entry.status === 'released' ? 'Released' : 'Pending'}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <button
-                            onClick={() => handleEditEntry(entry)}
-                            className="text-blue-400 hover:text-blue-300 p-1.5 rounded-lg hover:bg-blue-900/30 transition-all duration-200"
-                            title="Edit Entry"
-                          >
-                            <Edit3 className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              setDeletingEntry(entry);
-                              setShowDeleteModal(true);
-                            }}
-                            className="text-red-400 hover:text-red-300 p-1.5 rounded-lg hover:bg-red-900/30 transition-all duration-200"
-                            title="Delete Entry"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      ) : (generationMode === 'week' && selectedWeek) || (generationMode === 'dates' && selectedDates.length > 0) ? (
-        <div className="text-center py-12">
-          <div className="bg-slate-700/30 p-4 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
-            <FileText className="w-10 h-10 text-slate-500" />
-          </div>
-          <h3 className="text-lg font-medium text-white mb-2">No Payroll Data</h3>
-          <p className="text-slate-400">
-            No payroll records found for the selected {generationMode === 'week' ? 'week' : 'dates'}. Generate payslips first.
-          </p>
-        </div>
-      ) : (
-        <div className="text-center py-12">
-          <div className="bg-slate-700/30 p-4 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
-            <Calendar className="w-10 h-10 text-slate-500" />
-          </div>
-          <h3 className="text-lg font-medium text-white mb-2">Select Period</h3>
-          <p className="text-slate-400">
-            Please select a {generationMode === 'week' ? 'week' : 'dates'} above to generate or view payroll reports.
-          </p>
-        </div>
-      )}
+    for (const user of users) {
+      // Get time entries for this user and date range
+      const [timeEntries] = await pool.execute(
+        'SELECT * FROM time_entries WHERE user_id = ? AND DATE(clock_in) >= ? AND DATE(clock_in) <= ?',
+        [user.id, startDate, endDate]
+      );
 
-      {/* Edit Modal */}
-      {showEditModal && editingEntry && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-800/95 backdrop-blur-sm rounded-2xl shadow-xl p-6 w-full max-w-2xl border border-slate-700/50 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center gap-3 mb-6">
-              <Edit3 className="w-6 h-6 text-blue-400" />
-              <h3 className="text-xl font-semibold text-white">Edit Payroll Entry</h3>
-            </div>
-            
-            <div className="grid md:grid-cols-2 gap-6 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Clock In Time
-                </label>
-                <input
-                  type="datetime-local"
-                  value={editForm.clockIn}
-                  onChange={(e) => setEditForm({ ...editForm, clockIn: e.target.value })}
-                  className="w-full p-3 bg-slate-700/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Clock Out Time
-                </label>
-                <input
-                  type="datetime-local"
-                  value={editForm.clockOut}
-                  onChange={(e) => setEditForm({ ...editForm, clockOut: e.target.value })}
-                  className="w-full p-3 bg-slate-700/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white"
-                />
-              </div>
-            </div>
+      if (timeEntries.length === 0) continue;
 
-            <div className="mb-6">
-              <button
-                onClick={calculateFromTimes}
-                className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:from-purple-600 hover:to-purple-700 transition-all duration-200 flex items-center gap-2"
-              >
-                <Clock className="w-4 h-4" />
-                Calculate from Times
-              </button>
-              <p className="text-xs text-slate-400 mt-2">
-                This will automatically calculate hours and pay based on the clock in/out times using the 7:00 AM start rule.
-              </p>
-            </div>
-            
-            <div className="grid md:grid-cols-2 gap-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Total Hours
-                </label>
-                <input
-                  type="number"
-                  value={editForm.totalHours}
-                  onChange={(e) => setEditForm({ ...editForm, totalHours: parseFloat(e.target.value) || 0 })}
-                  className="w-full p-3 bg-slate-700/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white"
-                  step="0.01"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Overtime Hours
-                </label>
-                <input
-                  type="number"
-                  value={editForm.overtimeHours}
-                  onChange={(e) => setEditForm({ ...editForm, overtimeHours: parseFloat(e.target.value) || 0 })}
-                  className="w-full p-3 bg-slate-700/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white"
-                  step="0.01"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Undertime Hours
-                </label>
-                <input
-                  type="number"
-                  value={editForm.undertimeHours}
-                  onChange={(e) => setEditForm({ ...editForm, undertimeHours: parseFloat(e.target.value) || 0 })}
-                  className="w-full p-3 bg-slate-700/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white"
-                  step="0.01"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Base Salary (₱)
-                </label>
-                <input
-                  type="number"
-                  value={editForm.baseSalary}
-                  onChange={(e) => setEditForm({ ...editForm, baseSalary: parseFloat(e.target.value) || 0 })}
-                  className="w-full p-3 bg-slate-700/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white"
-                  step="0.01"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Overtime Pay (₱)
-                </label>
-                <input
-                  type="number"
-                  value={editForm.overtimePay}
-                  onChange={(e) => setEditForm({ ...editForm, overtimePay: parseFloat(e.target.value) || 0 })}
-                  className="w-full p-3 bg-slate-700/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white"
-                  step="0.01"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Undertime Deduction (₱)
-                </label>
-                <input
-                  type="number"
-                  value={editForm.undertimeDeduction}
-                  onChange={(e) => setEditForm({ ...editForm, undertimeDeduction: parseFloat(e.target.value) || 0 })}
-                  className="w-full p-3 bg-slate-700/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white"
-                  step="0.01"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Staff House Deduction (₱)
-                </label>
-                <input
-                  type="number"
-                  value={editForm.staffHouseDeduction}
-                  onChange={(e) => setEditForm({ ...editForm, staffHouseDeduction: parseFloat(e.target.value) || 0 })}
-                  className="w-full p-3 bg-slate-700/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-white"
-                  step="0.01"
-                />
-              </div>
-            </div>
+      let totalHours = 0;
+      let overtimeHours = 0;
+      let undertimeHours = 0;
+      let firstClockIn = null;
+      let lastClockOut = null;
 
-            {/* Total Calculation Display */}
-            <div className="bg-slate-700/30 p-4 rounded-lg mb-6 border border-slate-600/50">
-              <h4 className="font-medium text-white mb-2">Calculated Total</h4>
-              <div className="text-2xl font-bold text-emerald-400">
-                ₱{(editForm.baseSalary + editForm.overtimePay - editForm.undertimeDeduction - editForm.staffHouseDeduction).toFixed(2)}
-              </div>
-              <p className="text-sm text-slate-400 mt-1">
-                Base (₱{Number(editForm.baseSalary).toFixed(2)}) + Overtime (₱{Number(editForm.overtimePay).toFixed(2)}) - Deductions (₱{Number(editForm.undertimeDeduction + editForm.staffHouseDeduction).toFixed(2)})
-              </p>
-            </div>
+      // Calculate hours for each day
+      for (const entry of timeEntries) {
+        if (!entry.clock_out) continue;
 
-            {/* Important Note */}
-            <div className="bg-blue-900/20 p-4 rounded-lg mb-6 border border-blue-800/50">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-blue-400 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-blue-400 mb-1">Staff House Deduction Policy</p>
-                  <p className="text-xs text-blue-300">
-                    Staff house deduction is ₱50 per working day (₱250/week ÷ 5 days). This applies only to users 
-                    enrolled in staff house and is calculated based on actual working days in the selected period.
-                  </p>
-                  <ul className="text-xs text-blue-300 mt-1">
-                    <li>• Late clock-in (after 7:00 AM) incurs undertime deduction</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowEditModal(false);
-                  setEditingEntry(null);
-                }}
-                className="flex-1 bg-slate-700/50 text-slate-300 py-3 px-4 rounded-lg font-medium hover:bg-slate-600/50 transition-all duration-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={saveEditedEntry}
-                className="flex-1 bg-gradient-to-r from-blue-500 to-blue-600 text-white py-3 px-4 rounded-lg font-medium hover:from-blue-600 hover:to-blue-700 transition-all duration-200 flex items-center justify-center gap-2"
-              >
-                <Save className="w-4 h-4" />
-                Save Changes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        const clockIn = new Date(entry.clock_in);
+        const clockOut = new Date(entry.clock_out);
 
-      {/* Delete Modal */}
-      {showDeleteModal && deletingEntry && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-800/95 backdrop-blur-sm rounded-2xl shadow-xl p-6 w-full max-w-md border border-slate-700/50">
-            <div className="flex items-center gap-3 mb-4">
-              <AlertTriangle className="w-6 h-6 text-red-400" />
-              <h3 className="text-lg font-semibold text-white">Delete Payroll Entry</h3>
-            </div>
-            
-            <p className="text-slate-300 mb-6">
-              Are you sure you want to delete the payroll entry for <strong>{deletingEntry.username}</strong>?
-            </p>
-            
-            <div className="bg-red-900/20 p-4 rounded-lg mb-6 border border-red-800/50">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-red-400 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-red-400 mb-1">Warning</p>
-                  <p className="text-xs text-red-300">
-                    <strong>Warning:</strong> This action cannot be undone. The payroll entry will be permanently deleted.
-                  </p>
-                </div>
-              </div>
-            </div>
+        // Track first clock in and last clock out for the period
+        if (!firstClockIn || clockIn < firstClockIn) {
+          firstClockIn = clockIn;
+        }
+        if (!lastClockOut || clockOut > lastClockOut) {
+          lastClockOut = clockOut;
+        }
 
-            <div className="bg-purple-900/20 p-4 rounded-lg mb-6 border border-purple-800/50">
-              <div className="flex items-start gap-3">
-                <AlertTriangle className="w-5 h-5 text-purple-400 mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium text-purple-400 mb-1">Total Pay Salary Tracking</p>
-                  <p className="text-xs text-purple-300">
-                    "Total Pay Salary" shows the cumulative total of all salary payments for each user across 
-                    all generated payslips. This helps track the total amount paid to each employee over time.
-                  </p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowDeleteModal(false);
-                  setDeletingEntry(null);
-                }}
-                className="flex-1 bg-slate-700/50 text-slate-300 py-2 px-4 rounded-lg font-medium hover:bg-slate-600/50 transition-all duration-200"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteEntry}
-                className="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white py-2 px-4 rounded-lg font-medium hover:from-red-600 hover:to-red-700 transition-all duration-200"
-              >
-                Delete Entry
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+        // Define shift times for this day
+        const shiftStart = new Date(clockIn);
+        shiftStart.setHours(7, 0, 0, 0); // 7:00 AM
+        
+        const shiftEnd = new Date(clockIn);
+        shiftEnd.setHours(15, 30, 0, 0); // 3:30 PM
+
+        // Calculate worked hours from 7:00 AM onwards only
+        const effectiveClockIn = clockIn < shiftStart ? shiftStart : clockIn;
+        const dailyWorkedHours = Math.max(0, (clockOut.getTime() - effectiveClockIn.getTime()) / (1000 * 60 * 60));
+        
+        // Standard work day is 8.5 hours (including 30-minute break)
+        const standardHoursPerDay = 8.5;
+        
+        // Calculate daily undertime (if worked less than 8.5 hours)
+        if (dailyWorkedHours < standardHoursPerDay) {
+          undertimeHours += (standardHoursPerDay - dailyWorkedHours);
+        }
+        
+        // Calculate overtime (after 3:30 PM) - only if approved
+        if (clockOut > shiftEnd && entry.overtime_approved === true) {
+          const dailyOvertimeHours = Math.max(0, (clockOut.getTime() - shiftEnd.getTime()) / (1000 * 60 * 60));
+          overtimeHours += dailyOvertimeHours;
+        }
+
+        totalHours += dailyWorkedHours;
+      }
+
+      // Fixed base salary calculation
+      const baseSalary = 200; // Always ₱200 base pay
+      
+      // Calculate overtime pay (₱35/hour for approved overtime only)
+      const overtimePay = overtimeHours * 35;
+      
+      // Calculate undertime deduction (₱23.53/hour for hours not worked)
+      const hourlyRate = 200 / 8.5; // ₱23.53 per hour
+      const undertimeDeduction = undertimeHours * hourlyRate;
+      
+      // Staff house deduction
+      const staffHouseDeduction = user.staff_house ? 250 : 0;
+      
+      // Calculate total salary
+      const totalSalary = baseSalary + overtimePay - undertimeDeduction - staffHouseDeduction;
+
+      // Check if payslip already exists
+      const [existingPayslip] = await pool.execute(
+        'SELECT id FROM payslips WHERE user_id = ? AND week_start = ? AND week_end = ?',
+        [user.id, startDate, endDate]
+      );
+
+      if (existingPayslip.length > 0) {
+        // Update existing payslip
+        await pool.execute(
+          `UPDATE payslips SET 
+           total_hours = ?, overtime_hours = ?, undertime_hours = ?,
+           base_salary = ?, overtime_pay = ?, undertime_deduction = ?,
+           staff_house_deduction = ?, total_salary = ?,
+           clock_in_time = ?, clock_out_time = ?
+           WHERE id = ?`,
+          [
+            totalHours, overtimeHours, undertimeHours,
+            baseSalary, overtimePay, undertimeDeduction,
+            staffHouseDeduction, totalSalary,
+            firstClockIn, lastClockOut,
+            existingPayslip[0].id
+          ]
+        );
+      } else {
+        // Create new payslip
+        await pool.execute(
+          `INSERT INTO payslips 
+           (user_id, week_start, week_end, total_hours, overtime_hours, undertime_hours,
+            base_salary, overtime_pay, undertime_deduction, staff_house_deduction, 
+            total_salary, clock_in_time, clock_out_time, status) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+          [
+            user.id, startDate, endDate, totalHours, overtimeHours, undertimeHours,
+            baseSalary, overtimePay, undertimeDeduction, staffHouseDeduction,
+            totalSalary, firstClockIn, lastClockOut
+          ]
+        );
+      }
+
+      payslips.push({
+        user_id: user.id,
+        username: user.username,
+        department: user.department,
+        total_hours: totalHours,
+        overtime_hours: overtimeHours,
+        undertime_hours: undertimeHours,
+        base_salary: baseSalary,
+        overtime_pay: overtimePay,
+        undertime_deduction: undertimeDeduction,
+        staff_house_deduction: staffHouseDeduction,
+        total_salary: totalSalary
+      });
+    }
+
+    return { success: true, payslips };
+  } catch (error) {
+    console.error('Error generating payslips for date range:', error);
+    return { success: false, message: 'Server error' };
+  }
+}
+
+export async function generatePayslipsForSpecificDays(selectedDates, userIds = null) {
+  try {
+    // Get users (either specific users or all active users)
+    let users;
+    if (userIds && userIds.length > 0) {
+      const placeholders = userIds.map(() => '?').join(',');
+      const [result] = await pool.execute(
+        `SELECT * FROM users WHERE id IN (${placeholders}) AND active = TRUE`,
+        userIds
+      );
+      users = result;
+    } else {
+      const [result] = await pool.execute(
+        'SELECT * FROM users WHERE active = TRUE'
+      );
+      users = result;
+    }
+
+    const payslips = [];
+    const sortedDates = selectedDates.sort();
+    const startDate = sortedDates[0];
+    const endDate = sortedDates[sortedDates.length - 1];
+
+    for (const user of users) {
+      // Get time entries for this user and selected dates
+      const dateConditions = selectedDates.map(() => 'DATE(clock_in) = ?').join(' OR ');
+      const [timeEntries] = await pool.execute(
+        `SELECT * FROM time_entries WHERE user_id = ? AND (${dateConditions})`,
+        [user.id, ...selectedDates]
+      );
+
+      if (timeEntries.length === 0) continue;
+
+      let totalHours = 0;
+      let overtimeHours = 0;
+      let undertimeHours = 0;
+      let firstClockIn = null;
+      let lastClockOut = null;
+
+      // Calculate hours for each day
+      for (const entry of timeEntries) {
+        if (!entry.clock_out) continue;
+
+        const clockIn = new Date(entry.clock_in);
+        const clockOut = new Date(entry.clock_out);
+
+        // Track first clock in and last clock out for the period
+        if (!firstClockIn || clockIn < firstClockIn) {
+          firstClockIn = clockIn;
+        }
+        if (!lastClockOut || clockOut > lastClockOut) {
+          lastClockOut = clockOut;
+        }
+
+        // Define shift times for this day
+        const shiftStart = new Date(clockIn);
+        shiftStart.setHours(7, 0, 0, 0); // 7:00 AM
+        
+        const shiftEnd = new Date(clockIn);
+        shiftEnd.setHours(15, 30, 0, 0); // 3:30 PM
+
+        // Calculate worked hours from 7:00 AM onwards only
+        const effectiveClockIn = clockIn < shiftStart ? shiftStart : clockIn;
+        const dailyWorkedHours = Math.max(0, (clockOut.getTime() - effectiveClockIn.getTime()) / (1000 * 60 * 60));
+        
+        // Standard work day is 8.5 hours (including 30-minute break)
+        const standardHoursPerDay = 8.5;
+        
+        // Calculate daily undertime (if worked less than 8.5 hours)
+        if (dailyWorkedHours < standardHoursPerDay) {
+          undertimeHours += (standardHoursPerDay - dailyWorkedHours);
+        }
+        
+        // Calculate overtime (after 3:30 PM) - only if approved
+        if (clockOut > shiftEnd && entry.overtime_approved === true) {
+          const dailyOvertimeHours = Math.max(0, (clockOut.getTime() - shiftEnd.getTime()) / (1000 * 60 * 60));
+          overtimeHours += dailyOvertimeHours;
+        }
+
+        totalHours += dailyWorkedHours;
+      }
+
+      // Fixed base salary calculation
+      const baseSalary = 200; // Always ₱200 base pay
+      
+      // Calculate overtime pay (₱35/hour for approved overtime only)
+      const overtimePay = overtimeHours * 35;
+      
+      // Calculate undertime deduction (₱23.53/hour for hours not worked)
+      const hourlyRate = 200 / 8.5; // ₱23.53 per hour
+      const undertimeDeduction = undertimeHours * hourlyRate;
+      
+      // Staff house deduction
+      const staffHouseDeduction = user.staff_house ? 250 : 0;
+      
+      // Calculate total salary
+      const totalSalary = baseSalary + overtimePay - undertimeDeduction - staffHouseDeduction;
+
+      // Check if payslip already exists
+      const [existingPayslip] = await pool.execute(
+        'SELECT id FROM payslips WHERE user_id = ? AND week_start = ? AND week_end = ?',
+        [user.id, startDate, endDate]
+      );
+
+      if (existingPayslip.length > 0) {
+        // Update existing payslip
+        await pool.execute(
+          `UPDATE payslips SET 
+           total_hours = ?, overtime_hours = ?, undertime_hours = ?,
+           base_salary = ?, overtime_pay = ?, undertime_deduction = ?,
+           staff_house_deduction = ?, total_salary = ?,
+           clock_in_time = ?, clock_out_time = ?
+           WHERE id = ?`,
+          [
+            totalHours, overtimeHours, undertimeHours,
+            baseSalary, overtimePay, undertimeDeduction,
+            staffHouseDeduction, totalSalary,
+            firstClockIn, lastClockOut,
+            existingPayslip[0].id
+          ]
+        );
+      } else {
+        // Create new payslip
+        await pool.execute(
+          `INSERT INTO payslips 
+           (user_id, week_start, week_end, total_hours, overtime_hours, undertime_hours,
+            base_salary, overtime_pay, undertime_deduction, staff_house_deduction, 
+            total_salary, clock_in_time, clock_out_time, status) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+          [
+            user.id, startDate, endDate, totalHours, overtimeHours, undertimeHours,
+            baseSalary, overtimePay, undertimeDeduction, staffHouseDeduction,
+            totalSalary, firstClockIn, lastClockOut
+          ]
+        );
+      }
+
+      payslips.push({
+        user_id: user.id,
+        username: user.username,
+        department: user.department,
+        total_hours: totalHours,
+        overtime_hours: overtimeHours,
+        undertime_hours: undertimeHours,
+        base_salary: baseSalary,
+        overtime_pay: overtimePay,
+        undertime_deduction: undertimeDeduction,
+        staff_house_deduction: staffHouseDeduction,
+        total_salary: totalSalary
+      });
+    }
+
+    return { success: true, payslips };
+  } catch (error) {
+    console.error('Error generating payslips for specific days:', error);
+    return { success: false, message: 'Server error' };
+  }
+}
+
+export async function getPayrollReport(weekStart = null, endDate = null, selectedDates = null) {
+  try {
+    let query = `
+      SELECT 
+        p.*,
+        u.username,
+        u.department,
+        u.gcash_number,
+        u.staff_house
+      FROM payslips p
+      JOIN users u ON p.user_id = u.id
+    `;
+    
+    let params = [];
+    let whereConditions = [];
+
+    if (selectedDates && selectedDates.length > 0) {
+      // For specific dates
+      const sortedDates = selectedDates.sort();
+      whereConditions.push('p.week_start = ? AND p.week_end = ?');
+      params.push(sortedDates[0], sortedDates[sortedDates.length - 1]);
+    } else if (weekStart && endDate) {
+      // For date range
+      whereConditions.push('p.week_start >= ? AND p.week_end <= ?');
+      params.push(weekStart, endDate);
+    } else if (weekStart) {
+      // For specific week
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      whereConditions.push('p.week_start = ?');
+      params.push(weekStart);
+    }
+
+    if (whereConditions.length > 0) {
+      query += ' WHERE ' + whereConditions.join(' AND ');
+    }
+
+    query += ' ORDER BY u.department, u.username, p.week_start DESC';
+
+    const [payslips] = await pool.execute(query, params);
+    return payslips;
+  } catch (error) {
+    console.error('Error fetching payroll report:', error);
+    return [];
+  }
+}
+
+export async function updatePayrollEntry(payslipId, updateData) {
+  try {
+    const {
+      totalHours,
+      overtimeHours,
+      undertimeHours,
+      baseSalary,
+      overtimePay,
+      undertimeDeduction,
+      staffHouseDeduction,
+      clockIn,
+      clockOut
+    } = updateData;
+
+    // Always ensure base salary is ₱200
+    const fixedBaseSalary = 200;
+    
+    // Calculate total salary
+    const totalSalary = fixedBaseSalary + (overtimePay || 0) - (undertimeDeduction || 0) - (staffHouseDeduction || 0);
+
+    await pool.execute(
+      `UPDATE payslips SET 
+       total_hours = ?, overtime_hours = ?, undertime_hours = ?,
+       base_salary = ?, overtime_pay = ?, undertime_deduction = ?,
+       staff_house_deduction = ?, total_salary = ?,
+       clock_in_time = ?, clock_out_time = ?
+       WHERE id = ?`,
+      [
+        totalHours, overtimeHours, undertimeHours,
+        fixedBaseSalary, overtimePay, undertimeDeduction,
+        staffHouseDeduction, totalSalary,
+        clockIn, clockOut, payslipId
+      ]
+    );
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating payroll entry:', error);
+    return { success: false, message: 'Server error' };
+  }
 }
