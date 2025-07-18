@@ -32,7 +32,12 @@ const calculateFromTimes = () => {
     }
     
     // Calculate base salary (capped at ₱200 for 8.5 hours)
-    const baseSalary = 200; // Always ₱200 base pay
+    const standardHoursPerDay = 8.5;
+    const maxBasePay = 200;
+    const hourlyRate = 200 / 8.5; // ₱23.53 per hour
+    
+    const dailyBaseHours = Math.min(workedHours, standardHoursPerDay);
+    const baseSalary = Math.min(dailyBaseHours * hourlyRate, maxBasePay);
     
     // Don't automatically calculate overtime pay - it should be manually set based on approved requests
     const overtimePay = 0; // Admin needs to manually set this based on approved overtime requests
@@ -70,11 +75,11 @@ const calculateFromTimes = () => {
                 <div>
                   <p className="text-sm font-medium text-blue-400 mb-1">Payroll Calculation Rules</p>
                   <ul className="text-xs text-blue-300 space-y-1">
-                    <li>• Base pay is always ₱200 regardless of hours worked</li>
+                    <li>• Work hours only count from 7:00 AM onwards</li>
+                    <li>• Base pay is capped at ₱200 for 8.5 hours (₱23.53/hour)</li>
                     <li>• Overtime pay (₱35/hour) only applies to approved overtime requests</li>
-                    <li>• Late clock-in (after 7:00 AM) incurs undertime deduction (₱23.53/hour)</li>
+                    <li>• Late clock-in (after 7:00 AM) incurs undertime deduction</li>
                     <li>• Overtime hours are calculated but pay requires manual approval</li>
-                    <li>• Total = Base Pay (₱200) + Overtime Pay - Deductions</li>
                   </ul>
                 </div>
               </div>

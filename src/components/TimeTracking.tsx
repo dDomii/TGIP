@@ -699,7 +699,7 @@ export function TimeTracking() {
                             <span className="text-emerald-400 font-medium">Regular Hours</span>
                           </div>
                           <p className="text-white font-semibold">7:00 AM - 3:30 PM</p>
-                          <p className="text-slate-400 text-sm">₱200 base pay</p>
+                          <p className="text-slate-400 text-sm">₱200 daily cap</p>
                         </div>
                         
                         <div className="bg-slate-700/30 p-4 rounded-lg">
@@ -741,7 +741,7 @@ export function TimeTracking() {
                       
                       <div className="mt-4 p-4 bg-blue-900/20 rounded-lg border border-blue-800/50">
                         <p className="text-sm text-blue-300">
-                          <strong>Note:</strong> Base pay is always ₱200. Overtime pay (₱35/hour) is added for approved overtime after 8.5 hours worked. Deductions are subtracted from the total.
+                          <strong>Note:</strong> Base pay is capped at ₱200 for 8.5 hours. Work hours are counted from 7:00 AM onwards only.
                         </p>
                       </div>
                     </div>

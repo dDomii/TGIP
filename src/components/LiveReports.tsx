@@ -119,11 +119,13 @@ export function LiveReports() {
   const calculateEstimatedPay = (clockIn: string) => {
     const time = calculateCurrentTime(clockIn);
     const totalHours = time.hours + (time.minutes / 60) + (time.seconds / 3600);
-    const basePay = 200; // Always ₱200 base pay
+    const regularHours = Math.min(totalHours, 8.5);
     const overtimeHours = Math.max(0, totalHours - 8.5);
-    const overtimePay = isOvertimeHours(clockIn) && totalHours >= 8.5 ? overtimeHours * 35 : 0; // ₱35/hour for overtime only after 8.5 hours
+    const regularPay = regularHours * 23.52941176470589; // ₱25/hour
+    const overtimePay = isOvertimeHours(clockIn) ? overtimeHours * 35 : 0; // ₱35/hour for overtime
     
-    return basePay + overtimePay;
+    
+    return regularPay + overtimePay;
   };
 
   // Group users by department
