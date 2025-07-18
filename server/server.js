@@ -542,8 +542,10 @@ app.post('/api/payslips/release', authenticate, async (req, res) => {
 // Helper function to log payslip actions
 async function logPayslipAction(adminId, action, dates, payslipCount, userIds = null) {
   try {
-    const periodStart = dates[0];
-    const periodEnd = dates[dates.length - 1] || dates[0];
+    // Ensure dates are valid, fallback to current date if not
+    const now = new Date().toISOString().split('T')[0];
+    const periodStart = dates && dates.length > 0 ? dates[0] : now;
+    const periodEnd = dates && dates.length > 0 ? (dates[dates.length - 1] || dates[0]) : now;
     const userIdsJson = userIds ? JSON.stringify(userIds) : null;
     
     await pool.execute(
