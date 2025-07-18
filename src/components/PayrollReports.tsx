@@ -797,6 +797,13 @@ export function PayrollReports() {
       {filteredPayrollData.length > 0 && (
         <div className="flex gap-4 mb-6">
           <button
+            onClick={() => setShowBulkTotalModal(true)}
+            className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:from-purple-600 hover:to-purple-700 transition-all duration-200 flex items-center gap-2 shadow-lg"
+          >
+            <Calculator className="w-4 h-4" />
+            Bulk Add Total
+          </button>
+          <button
             onClick={exportToPDF}
             className="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-lg font-medium hover:from-red-600 hover:to-red-700 transition-all duration-200 flex items-center gap-2 shadow-lg"
           >
