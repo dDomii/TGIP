@@ -83,10 +83,10 @@ export async function calculateWeeklyPayroll(userId, weekStart) {
         undertimeHours += lateHours;
       }
 
-      // Handle overtime calculation
-      if (entry.overtime_requested && entry.overtime_approved) {
+      // Handle overtime calculation - only if user worked 8.5 hours or more
+      if (entry.overtime_requested && entry.overtime_approved && workedHours >= standardHoursPerDay) {
         if (clockOut > shiftEnd) {
-          // Overtime starts immediately at 3:30 PM when approved
+          // Overtime starts immediately at 3:30 PM when approved and user has worked 8.5+ hours
           const overtime = Math.max(0, (clockOut - shiftEnd) / (1000 * 60 * 60));
           overtimeHours += overtime;
         }
@@ -143,7 +143,6 @@ function formatDateTimeForMySQL(date) {
 export async function generatePayslipsForDateRange(startDate, endDate) {
   try {
     const payslips = [];
-    const userTotalSalaries = new Map(); // Track total salary per user
 
     // Step 1: Get all active users with time entries in the range
     const [users] = await pool.execute(`
@@ -172,23 +171,16 @@ export async function generatePayslipsForDateRange(startDate, endDate) {
           );
 
           if (existing.length === 0) {
-            // Track total salary per user
-            if (!userTotalSalaries.has(user.id)) {
-              userTotalSalaries.set(user.id, 0);
-            }
-            userTotalSalaries.set(user.id, userTotalSalaries.get(user.id) + payroll.totalSalary);
-            
-            const totalPaySalary = userTotalSalaries.get(user.id);
 
             const [result] = await pool.execute(
               `INSERT INTO payslips (user_id, week_start, week_end, total_hours, overtime_hours, 
                undertime_hours, base_salary, overtime_pay, undertime_deduction, staff_house_deduction, 
-               total_salary, total_pay_salary, clock_in_time, clock_out_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+               total_salary, clock_in_time, clock_out_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
               [
                 user.id, weekStart, weekEnd,
                 payroll.totalHours, payroll.overtimeHours, payroll.undertimeHours,
                 payroll.baseSalary, payroll.overtimePay, payroll.undertimeDeduction,
-                payroll.staffHouseDeduction, payroll.totalSalary, totalPaySalary,
+                payroll.staffHouseDeduction, payroll.totalSalary,
                 payroll.clockInTime, payroll.clockOutTime
               ]
             );
@@ -197,7 +189,6 @@ export async function generatePayslipsForDateRange(startDate, endDate) {
               id: result.insertId,
               user: user.username,
               department: user.department,
-              totalPaySalary,
               ...payroll,
               weekStart,
               weekEnd,
@@ -224,7 +215,6 @@ export async function generatePayslipsForDateRange(startDate, endDate) {
 export async function generatePayslipsForSpecificDays(selectedDates, userIds = null) {
   try {
     const payslips = [];
-    const userTotalSalaries = new Map(); // Track total salary per user
 
     for (const date of selectedDates) {
       let userCondition = '';
@@ -262,23 +252,16 @@ export async function generatePayslipsForSpecificDays(selectedDates, userIds = n
             payroll.staffHouseDeduction = staffHouseDeduction;
             payroll.totalSalary = payroll.baseSalary + payroll.overtimePay - payroll.undertimeDeduction - staffHouseDeduction;
             
-            // Track total salary per user
-            if (!userTotalSalaries.has(user.id)) {
-              userTotalSalaries.set(user.id, 0);
-            }
-            userTotalSalaries.set(user.id, userTotalSalaries.get(user.id) + payroll.totalSalary);
-            
-            const totalPaySalary = userTotalSalaries.get(user.id);
 
             const [result] = await pool.execute(
               `INSERT INTO payslips (user_id, week_start, week_end, total_hours, overtime_hours, 
                undertime_hours, base_salary, overtime_pay, undertime_deduction, staff_house_deduction, 
-               total_salary, total_pay_salary, clock_in_time, clock_out_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+               total_salary, clock_in_time, clock_out_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
               [
                 user.id, date, date,
                 payroll.totalHours, payroll.overtimeHours, payroll.undertimeHours,
                 payroll.baseSalary, payroll.overtimePay, payroll.undertimeDeduction,
-                payroll.staffHouseDeduction, payroll.totalSalary, totalPaySalary,
+                payroll.staffHouseDeduction, payroll.totalSalary,
                 payroll.clockInTime, payroll.clockOutTime
               ]
             );
@@ -288,7 +271,6 @@ export async function generatePayslipsForSpecificDays(selectedDates, userIds = n
               user: user.username,
               department: user.department,
               date,
-              totalPaySalary,
               ...payroll
             });
           }
@@ -379,10 +361,10 @@ export async function calculatePayrollForSpecificDays(userId, selectedDates) {
         undertimeHours += lateHours;
       }
 
-      // Handle overtime calculation
-      if (entry.overtime_requested && entry.overtime_approved) {
+      // Handle overtime calculation - only if user worked 8.5 hours or more
+      if (entry.overtime_requested && entry.overtime_approved && workedHours >= standardHoursPerDay) {
         if (clockOut > shiftEnd) {
-          // Overtime starts immediately at 3:30 PM when approved
+          // Overtime starts immediately at 3:30 PM when approved and user has worked 8.5+ hours
           const overtime = Math.max(0, (clockOut - shiftEnd) / (1000 * 60 * 60));
           overtimeHours += overtime;
         }
@@ -493,10 +475,10 @@ export async function calculatePayrollForDateRange(userId, startDate, endDate) {
       }
 
 
-      // Handle overtime calculation
-      if (entry.overtime_requested && entry.overtime_approved) {
+      // Handle overtime calculation - only if user worked 8.5 hours or more
+      if (entry.overtime_requested && entry.overtime_approved && workedHours >= standardHoursPerDay) {
         if (clockOut > shiftEnd) {
-          // Overtime starts immediately at 3:30 PM when approved
+          // Overtime starts immediately at 3:30 PM when approved and user has worked 8.5+ hours
           const overtime = Math.max(0, (clockOut - shiftEnd) / (1000 * 60 * 60));
           overtimeHours += overtime;
         }
@@ -657,54 +639,15 @@ export async function updatePayrollEntry(payslipId, updateData) {
     const formattedClockIn = clockIn ? formatDateTimeForMySQL(new Date(clockIn)) : null;
     const formattedClockOut = clockOut ? formatDateTimeForMySQL(new Date(clockOut)) : null;
 
-    // Get the payslip to find the user_id and update their worked hours
-    const [payslipResult] = await pool.execute(
-      'SELECT user_id, total_hours as old_total_hours, total_pay_salary FROM payslips WHERE id = ?',
-      [payslipId]
-    );
-    
-    if (payslipResult.length === 0) {
-      return { success: false, message: 'Payslip not found' };
-    }
-    
-    const userId = payslipResult[0].user_id;
-    const oldTotalHours = parseFloat(payslipResult[0].old_total_hours) || 0;
-    const oldTotalPaySalary = parseFloat(payslipResult[0].total_pay_salary) || 0;
-    const newTotalHours = parseFloat(totalHours) || 0;
-    const hoursDifference = newTotalHours - oldTotalHours;
-    
-    // Calculate new total pay salary (add the difference)
-    const salaryDifference = totalSalary - (oldTotalPaySalary - (payslipResult[0].total_salary || 0));
-    const newTotalPaySalary = oldTotalPaySalary + salaryDifference;
-    
     await pool.execute(
       `UPDATE payslips SET 
        clock_in_time = ?, clock_out_time = ?, total_hours = ?, overtime_hours = ?, 
        undertime_hours = ?, base_salary = ?, overtime_pay = ?, undertime_deduction = ?, 
-       staff_house_deduction = ?, total_salary = ?, total_pay_salary = ?
+       staff_house_deduction = ?, total_salary = ?
        WHERE id = ?`,
-      [formattedClockIn, formattedClockOut, totalHours, overtimeHours, undertimeHours, baseSalary, overtimePay, undertimeDeduction, staffHouseDeduction, totalSalary, newTotalPaySalary, payslipId]
+      [formattedClockIn, formattedClockOut, totalHours, overtimeHours, undertimeHours, baseSalary, overtimePay, undertimeDeduction, staffHouseDeduction, totalSalary, payslipId]
     );
 
-    // Update the user's worked hours in time_entries if there's a significant change
-    if (Math.abs(hoursDifference) > 0.01) { // Only update if difference is more than 0.01 hours
-      // Create an adjustment entry to reflect the change in progress tracker
-      const adjustmentDate = new Date().toISOString().split('T')[0];
-      const weekStart = getWeekStart(new Date());
-      
-      // Insert an adjustment entry
-      await pool.execute(
-        `INSERT INTO time_entries (user_id, clock_in, clock_out, date, week_start, overtime_requested, overtime_approved) 
-         VALUES (?, ?, ?, ?, ?, FALSE, NULL)`,
-        [
-          userId,
-          formattedClockIn || new Date().toISOString(),
-          formattedClockOut || new Date().toISOString(),
-          adjustmentDate,
-          weekStart
-        ]
-      );
-    }
     return { success: true };
   } catch (error) {
     console.error('Update payroll entry error:', error);
