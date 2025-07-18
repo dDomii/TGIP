@@ -21,6 +21,7 @@ interface PayrollEntry {
   undertime_deduction: number;
   staff_house_deduction: number;
   total_salary: number;
+  total_pay_salary: number;
   clock_in_time: string;
   clock_out_time: string;
   status: string;
@@ -429,11 +430,12 @@ export function PayrollReports() {
       `₱${Number(entry.undertime_deduction).toFixed(2)}`,
       `₱${Number(entry.staff_house_deduction).toFixed(2)}`,
       `₱${Number(entry.total_salary).toFixed(2)}`,
+      `₱${Number(entry.total_pay_salary).toFixed(2)}`,
       entry.status
     ]);
 
     autoTable(doc, {
-      head: [['Employee', 'Department', 'Hours', 'OT Hours', 'Base Pay', 'OT Pay', 'Undertime', 'Staff House', 'Total', 'Status']],
+      head: [['Employee', 'Department', 'Hours', 'OT Hours', 'Base Pay', 'OT Pay', 'Undertime', 'Staff House', 'Total', 'Total Pay', 'Status']],
       body: tableData,
       startY: 40,
       styles: { fontSize: 8 },
@@ -459,6 +461,7 @@ export function PayrollReports() {
       'Undertime Deduction (₱)',
       'Staff House Deduction (₱)',
       'Total Salary (₱)',
+      'Total Pay Salary (₱)',
       'Status'
     ];
 
@@ -475,6 +478,7 @@ export function PayrollReports() {
       entry.undertime_deduction.toFixed(2),
       entry.staff_house_deduction.toFixed(2),
       entry.total_salary.toFixed(2),
+      entry.total_pay_salary.toFixed(2),
       entry.status
     ]);
 
@@ -537,6 +541,7 @@ export function PayrollReports() {
   });
 
   const totalSalary = filteredPayrollData.reduce((sum, entry) => sum + entry.total_salary, 0);
+  const totalPaySalary = filteredPayrollData.reduce((sum, entry) => sum + entry.total_pay_salary, 0);
   const totalHours = filteredPayrollData.reduce((sum, entry) => sum + entry.total_hours, 0);
   const totalOvertimeHours = filteredPayrollData.reduce((sum, entry) => sum + entry.overtime_hours, 0);
 
@@ -737,7 +742,7 @@ export function PayrollReports() {
 
       {/* Summary Cards */}
       {filteredPayrollData.length > 0 && (
-        <div className="grid md:grid-cols-4 gap-4 mb-6">
+        <div className="grid md:grid-cols-5 gap-4 mb-6">
           <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-slate-700/50">
             <div className="flex items-center justify-between">
               <div>
@@ -762,6 +767,17 @@ export function PayrollReports() {
             </div>
           </div>
 
+          <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-slate-700/50">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-400">Total Pay Salary</p>
+                <p className="text-2xl font-bold text-purple-400">₱{Number(totalPaySalary).toFixed(2)}</p>
+              </div>
+              <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 p-3 rounded-lg">
+                <PhilippinePeso className="w-6 h-6 text-purple-400" />
+              </div>
+            </div>
+          </div>
           <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-slate-700/50">
             <div className="flex items-center justify-between">
               <div>
@@ -821,7 +837,7 @@ export function PayrollReports() {
               }
             </h3>
             <p className="text-sm text-slate-400 mt-1">
-              {filteredPayrollData.length} employees • Total: ₱{Number(totalSalary).toFixed(2)}
+              {filteredPayrollData.length} employees • Period Total: ₱{Number(totalSalary).toFixed(2)} • Cumulative Total: ₱{Number(totalPaySalary).toFixed(2)}
             </p>
           </div>
           <div className="overflow-x-auto">
@@ -836,6 +852,7 @@ export function PayrollReports() {
                   <th className="text-right py-3 px-4 font-semibold text-slate-300">Overtime</th>
                   <th className="text-right py-3 px-4 font-semibold text-slate-300">Deductions</th>
                   <th className="text-right py-3 px-4 font-semibold text-slate-300">Total</th>
+                  <th className="text-right py-3 px-4 font-semibold text-slate-300">Total Pay</th>
                   <th className="text-center py-3 px-4 font-semibold text-slate-300">Status</th>
                   <th className="text-center py-3 px-4 font-semibold text-slate-300">Actions</th>
                 </tr>
@@ -884,6 +901,10 @@ export function PayrollReports() {
                     </td>
                     <td className="py-3 px-4 text-right">
                       <p className="font-bold text-white">₱{Number(entry.total_salary).toFixed(2)}</p>
+                    </td>
+                    <td className="py-3 px-4 text-right">
+                      <p className="font-bold text-purple-400">₱{Number(entry.total_pay_salary).toFixed(2)}</p>
+                      <p className="text-xs text-slate-400">Cumulative</p>
                     </td>
                     <td className="py-3 px-4 text-center">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
@@ -1100,11 +1121,10 @@ export function PayrollReports() {
               <div className="flex items-start gap-3">
                 <AlertTriangle className="w-5 h-5 text-blue-400 mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium text-blue-400 mb-1">Payroll Calculation Rules</p>
-                  <ul className="text-xs text-blue-300 space-y-1">
-                    <li>• Work hours only count from 7:00 AM onwards</li>
-                    <li>• Base pay is capped at ₱200 for 8.5 hours (₱23.53/hour)</li>
-                    <li>• Overtime rate is ₱35/hour after 3:30 PM</li>
+                  <p className="text-sm font-medium text-blue-400 mb-1">Staff House Deduction Policy</p>
+                  <p className="text-xs text-blue-300">
+                    Staff house deduction is ₱50 per working day (₱250/week ÷ 5 days). This applies only to users 
+                    enrolled in staff house and is calculated based on actual working days in the selected period.
                     <li>• Late clock-in (after 7:00 AM) incurs undertime deduction</li>
                   </ul>
                 </div>
@@ -1133,21 +1153,18 @@ export function PayrollReports() {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
+            <div className="bg-purple-900/20 p-4 rounded-lg mb-6 border border-purple-800/50">
       {showDeleteModal && deletingEntry && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+                <AlertTriangle className="w-5 h-5 text-purple-400 mt-0.5" />
           <div className="bg-slate-800/95 backdrop-blur-sm rounded-2xl shadow-xl p-6 w-full max-w-md border border-slate-700/50">
             <div className="flex items-center gap-3 mb-4">
               <AlertTriangle className="w-6 h-6 text-red-400" />
               <h3 className="text-lg font-semibold text-white">Delete Payroll Entry</h3>
             </div>
-            
-            <div className="mb-6">
-              <p className="text-slate-300 mb-2">
-                Are you sure you want to delete the payroll entry for <strong className="text-white">{deletingEntry.username}</strong>?
-              </p>
-              <div className="bg-red-900/20 p-3 rounded-lg border border-red-800/50">
-                <p className="text-sm text-red-400">
+                  <p className="text-sm font-medium text-purple-400 mb-1">Total Pay Salary Tracking</p>
+                  <p className="text-xs text-purple-300">
+                    "Total Pay Salary" shows the cumulative total of all salary payments for each user across 
+                    all generated payslips. This helps track the total amount paid to each employee over time.
                   <strong>Warning:</strong> This action cannot be undone. The payroll entry will be permanently deleted.
                 </p>
               </div>

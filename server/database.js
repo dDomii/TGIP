@@ -75,6 +75,7 @@ export async function initializeDatabase() {
         undertime_deduction DECIMAL(10,2) DEFAULT 0,
         staff_house_deduction DECIMAL(10,2) DEFAULT 0,
         total_salary DECIMAL(10,2) NOT NULL,
+        total_pay_salary DECIMAL(10,2) DEFAULT 0,
         clock_in_time TIMESTAMP NULL,
         clock_out_time TIMESTAMP NULL,
         status ENUM('pending', 'released') DEFAULT 'pending',
@@ -107,6 +108,16 @@ export async function initializeDatabase() {
       `);
     } catch (error) {
       // Columns might already exist, ignore error
+    }
+
+    // Add total_pay_salary column if it doesn't exist
+    try {
+      await pool.execute(`
+        ALTER TABLE payslips 
+        ADD COLUMN total_pay_salary DECIMAL(10,2) DEFAULT 0
+      `);
+    } catch (error) {
+      // Column might already exist, ignore error
     }
 
     // Add required_hours column if it doesn't exist

@@ -143,6 +143,7 @@ function formatDateTimeForMySQL(date) {
 export async function generatePayslipsForDateRange(startDate, endDate) {
   try {
     const payslips = [];
+    const userTotalSalaries = new Map(); // Track total salary per user
 
     // Step 1: Get all active users with time entries in the range
     const [users] = await pool.execute(`
@@ -150,6 +151,7 @@ export async function generatePayslipsForDateRange(startDate, endDate) {
       FROM users u
       JOIN time_entries te ON u.id = te.user_id
       WHERE u.active = TRUE AND DATE(te.clock_in) BETWEEN ? AND ?
+      ORDER BY u.username ASC
     `, [startDate, endDate]);
 
     // Step 2: Loop over each week in the range
@@ -170,15 +172,23 @@ export async function generatePayslipsForDateRange(startDate, endDate) {
           );
 
           if (existing.length === 0) {
+            // Track total salary per user
+            if (!userTotalSalaries.has(user.id)) {
+              userTotalSalaries.set(user.id, 0);
+            }
+            userTotalSalaries.set(user.id, userTotalSalaries.get(user.id) + payroll.totalSalary);
+            
+            const totalPaySalary = userTotalSalaries.get(user.id);
+
             const [result] = await pool.execute(
               `INSERT INTO payslips (user_id, week_start, week_end, total_hours, overtime_hours, 
                undertime_hours, base_salary, overtime_pay, undertime_deduction, staff_house_deduction, 
-               total_salary, clock_in_time, clock_out_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+               total_salary, total_pay_salary, clock_in_time, clock_out_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
               [
                 user.id, weekStart, weekEnd,
                 payroll.totalHours, payroll.overtimeHours, payroll.undertimeHours,
                 payroll.baseSalary, payroll.overtimePay, payroll.undertimeDeduction,
-                payroll.staffHouseDeduction, payroll.totalSalary,
+                payroll.staffHouseDeduction, payroll.totalSalary, totalPaySalary,
                 payroll.clockInTime, payroll.clockOutTime
               ]
             );
@@ -187,6 +197,7 @@ export async function generatePayslipsForDateRange(startDate, endDate) {
               id: result.insertId,
               user: user.username,
               department: user.department,
+              totalPaySalary,
               ...payroll,
               weekStart,
               weekEnd,
@@ -199,6 +210,9 @@ export async function generatePayslipsForDateRange(startDate, endDate) {
       current = addWeeks(current, 1);
     }
 
+    // Sort payslips by username
+    payslips.sort((a, b) => a.user.localeCompare(b.user));
+
     return payslips;
   } catch (error) {
     console.error('Generate payslips error:', error);
@@ -210,6 +224,7 @@ export async function generatePayslipsForDateRange(startDate, endDate) {
 export async function generatePayslipsForSpecificDays(selectedDates, userIds = null) {
   try {
     const payslips = [];
+    const userTotalSalaries = new Map(); // Track total salary per user
 
     for (const date of selectedDates) {
       let userCondition = '';
@@ -225,6 +240,7 @@ export async function generatePayslipsForSpecificDays(selectedDates, userIds = n
         SELECT DISTINCT u.* FROM users u 
         JOIN time_entries te ON u.id = te.user_id
         WHERE u.active = TRUE AND DATE(te.clock_in) = ?${userCondition}
+        ORDER BY u.username ASC
       `, queryParams);
 
       for (const user of users) {
@@ -239,15 +255,30 @@ export async function generatePayslipsForSpecificDays(selectedDates, userIds = n
           );
 
           if (existing.length === 0) {
+            // Calculate staff house deduction for this specific day
+            const staffHouseDeduction = user.staff_house ? 50 : 0; // ₱250/week = ₱50/day (250/5 working days)
+            
+            // Update payroll with correct staff house deduction
+            payroll.staffHouseDeduction = staffHouseDeduction;
+            payroll.totalSalary = payroll.baseSalary + payroll.overtimePay - payroll.undertimeDeduction - staffHouseDeduction;
+            
+            // Track total salary per user
+            if (!userTotalSalaries.has(user.id)) {
+              userTotalSalaries.set(user.id, 0);
+            }
+            userTotalSalaries.set(user.id, userTotalSalaries.get(user.id) + payroll.totalSalary);
+            
+            const totalPaySalary = userTotalSalaries.get(user.id);
+
             const [result] = await pool.execute(
               `INSERT INTO payslips (user_id, week_start, week_end, total_hours, overtime_hours, 
                undertime_hours, base_salary, overtime_pay, undertime_deduction, staff_house_deduction, 
-               total_salary, clock_in_time, clock_out_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+               total_salary, total_pay_salary, clock_in_time, clock_out_time) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
               [
                 user.id, date, date,
                 payroll.totalHours, payroll.overtimeHours, payroll.undertimeHours,
                 payroll.baseSalary, payroll.overtimePay, payroll.undertimeDeduction,
-                payroll.staffHouseDeduction, payroll.totalSalary,
+                payroll.staffHouseDeduction, payroll.totalSalary, totalPaySalary,
                 payroll.clockInTime, payroll.clockOutTime
               ]
             );
@@ -257,12 +288,16 @@ export async function generatePayslipsForSpecificDays(selectedDates, userIds = n
               user: user.username,
               department: user.department,
               date,
+              totalPaySalary,
               ...payroll
             });
           }
         }
       }
     }
+
+    // Sort payslips by username
+    payslips.sort((a, b) => a.user.localeCompare(b.user));
 
     return payslips;
   } catch (error) {
@@ -364,9 +399,9 @@ export async function calculatePayrollForSpecificDays(userId, selectedDates) {
     const overtimePay = overtimeHours * 35;
     const undertimeDeduction = undertimeHours * hourlyRate;
     
-    // Count actual working days from selected dates
+    // Staff house deduction: ₱50 per working day (₱250/week ÷ 5 days)
     const workingDays = entries.filter(entry => entry.clock_out).length;
-    const staffHouseDeduction = userData.staff_house ? (250 * workingDays / 5) : 0; // Prorated based on actual working days
+    const staffHouseDeduction = userData.staff_house ? (50 * workingDays) : 0;
     
     const totalSalary = baseSalary + overtimePay - undertimeDeduction - staffHouseDeduction;
 
@@ -575,7 +610,7 @@ export async function getPayrollReport(startDate, endDate, selectedDates = []) {
         FROM payslips p
         JOIN users u ON p.user_id = u.id
         WHERE p.week_start IN (${placeholders})
-        ORDER BY u.department, u.username, p.week_start
+        ORDER BY u.username ASC, p.week_start ASC
       `;
       params = selectedDates;
 
@@ -585,7 +620,7 @@ export async function getPayrollReport(startDate, endDate, selectedDates = []) {
         FROM payslips p
         JOIN users u ON p.user_id = u.id
         WHERE p.week_start BETWEEN ? AND ?
-        ORDER BY u.department, u.username, p.week_start
+        ORDER BY u.username ASC, p.week_start ASC
       `;
       params = [startDate, endDate];
 
@@ -595,7 +630,7 @@ export async function getPayrollReport(startDate, endDate, selectedDates = []) {
         FROM payslips p
         JOIN users u ON p.user_id = u.id
         WHERE p.week_start = ?
-        ORDER BY u.department, u.username, p.week_start
+        ORDER BY u.username ASC, p.week_start ASC
       `;
       params = [startDate];
 
@@ -624,7 +659,7 @@ export async function updatePayrollEntry(payslipId, updateData) {
 
     // Get the payslip to find the user_id and update their worked hours
     const [payslipResult] = await pool.execute(
-      'SELECT user_id, total_hours as old_total_hours FROM payslips WHERE id = ?',
+      'SELECT user_id, total_hours as old_total_hours, total_pay_salary FROM payslips WHERE id = ?',
       [payslipId]
     );
     
@@ -634,15 +669,21 @@ export async function updatePayrollEntry(payslipId, updateData) {
     
     const userId = payslipResult[0].user_id;
     const oldTotalHours = parseFloat(payslipResult[0].old_total_hours) || 0;
+    const oldTotalPaySalary = parseFloat(payslipResult[0].total_pay_salary) || 0;
     const newTotalHours = parseFloat(totalHours) || 0;
     const hoursDifference = newTotalHours - oldTotalHours;
+    
+    // Calculate new total pay salary (add the difference)
+    const salaryDifference = totalSalary - (oldTotalPaySalary - (payslipResult[0].total_salary || 0));
+    const newTotalPaySalary = oldTotalPaySalary + salaryDifference;
+    
     await pool.execute(
       `UPDATE payslips SET 
        clock_in_time = ?, clock_out_time = ?, total_hours = ?, overtime_hours = ?, 
        undertime_hours = ?, base_salary = ?, overtime_pay = ?, undertime_deduction = ?, 
-       staff_house_deduction = ?, total_salary = ?
+       staff_house_deduction = ?, total_salary = ?, total_pay_salary = ?
        WHERE id = ?`,
-      [formattedClockIn, formattedClockOut, totalHours, overtimeHours, undertimeHours, baseSalary, overtimePay, undertimeDeduction, staffHouseDeduction, totalSalary, payslipId]
+      [formattedClockIn, formattedClockOut, totalHours, overtimeHours, undertimeHours, baseSalary, overtimePay, undertimeDeduction, staffHouseDeduction, totalSalary, newTotalPaySalary, payslipId]
     );
 
     // Update the user's worked hours in time_entries if there's a significant change
