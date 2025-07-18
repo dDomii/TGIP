@@ -64,6 +64,7 @@ export function PayrollReports() {
   const [deletingEntry, setDeletingEntry] = useState<PayrollEntry | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('');
+  const [groupByUser, setGroupByUser] = useState(false);
   const { token } = useAuth();
 
   useEffect(() => {
@@ -397,8 +398,49 @@ export function PayrollReports() {
     }
   };
 
+  // Group payroll data by user when groupByUser is enabled
+  const getGroupedPayrollData = () => {
+    if (!groupByUser) return payrollData;
+    
+    const grouped = payrollData.reduce((acc, entry) => {
+      const userId = entry.user_id;
+      if (!acc[userId]) {
+        acc[userId] = {
+          username: entry.username,
+          department: entry.department,
+          entries: [],
+          totals: {
+            total_hours: 0,
+            overtime_hours: 0,
+            undertime_hours: 0,
+            base_salary: 0,
+            overtime_pay: 0,
+            undertime_deduction: 0,
+            staff_house_deduction: 0,
+            total_salary: 0
+          }
+        };
+      }
+      
+      acc[userId].entries.push(entry);
+      acc[userId].totals.total_hours += parseFloat(entry.total_hours) || 0;
+      acc[userId].totals.overtime_hours += parseFloat(entry.overtime_hours) || 0;
+      acc[userId].totals.undertime_hours += parseFloat(entry.undertime_hours) || 0;
+      acc[userId].totals.base_salary += parseFloat(entry.base_salary) || 0;
+      acc[userId].totals.overtime_pay += parseFloat(entry.overtime_pay) || 0;
+      acc[userId].totals.undertime_deduction += parseFloat(entry.undertime_deduction) || 0;
+      acc[userId].totals.staff_house_deduction += parseFloat(entry.staff_house_deduction) || 0;
+      acc[userId].totals.total_salary += parseFloat(entry.total_salary) || 0;
+      
+      return acc;
+    }, {});
+    
+    return Object.values(grouped).sort((a, b) => a.username.localeCompare(b.username));
+  };
+
   const exportToPDF = () => {
-    if (payrollData.length === 0) return;
+    const dataToExport = groupByUser ? getGroupedPayrollData() : payrollData;
+    if (dataToExport.length === 0) return;
 
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.width;
@@ -420,23 +462,44 @@ export function PayrollReports() {
     doc.text(`Period: ${dateRange}`, pageWidth / 2, 30, { align: 'center' });
     
     // Table data
-    const tableData = payrollData.map(entry => [
-      entry.username,
-      entry.department,
-      Number(entry.total_hours).toFixed(2),
-      Number(entry.overtime_hours).toFixed(2),
-      `₱${Number(entry.base_salary).toFixed(2)}`,
-      `₱${Number(entry.overtime_pay).toFixed(2)}`,
-      `₱${Number(entry.undertime_deduction).toFixed(2)}`,
-      `₱${Number(entry.staff_house_deduction).toFixed(2)}`,
-      `₱${Number(entry.total_salary).toFixed(2)}`,
-      `₱${Number(entry.total_pay_salary).toFixed(2)}`,
-      entry.status
-    ]);
+    const tableHeaders = [
+      { text: 'Employee', style: 'tableHeader' },
+      { text: 'Department', style: 'tableHeader' },
+      ...(groupByUser ? [] : [{ text: 'Period', style: 'tableHeader' }]),
+      { text: 'Hours', style: 'tableHeader' },
+      { text: 'OT Hours', style: 'tableHeader' },
+      { text: 'Base Pay', style: 'tableHeader' },
+      { text: 'OT Pay', style: 'tableHeader' },
+      { text: 'Deductions', style: 'tableHeader' },
+      { text: 'Total', style: 'tableHeader' }
+    ];
+
+    const tableBody = groupByUser 
+      ? dataToExport.map(group => [
+          group.username,
+          group.department,
+          `${group.totals.total_hours.toFixed(1)}h`,
+          `${group.totals.overtime_hours.toFixed(1)}h`,
+          formatCurrency(group.totals.base_salary),
+          formatCurrency(group.totals.overtime_pay),
+          formatCurrency(group.totals.undertime_deduction + group.totals.staff_house_deduction),
+          formatCurrency(group.totals.total_salary)
+        ])
+      : dataToExport.map(entry => [
+          entry.username,
+          entry.department,
+          `${formatDate(entry.week_start)} - ${formatDate(entry.week_end)}`,
+          `${parseFloat(entry.total_hours).toFixed(1)}h`,
+          `${parseFloat(entry.overtime_hours).toFixed(1)}h`,
+          formatCurrency(parseFloat(entry.base_salary)),
+          formatCurrency(parseFloat(entry.overtime_pay)),
+          formatCurrency(parseFloat(entry.undertime_deduction) + parseFloat(entry.staff_house_deduction)),
+          formatCurrency(parseFloat(entry.total_salary))
+        ]);
 
     autoTable(doc, {
       head: [['Employee', 'Department', 'Hours', 'OT Hours', 'Base Pay', 'OT Pay', 'Undertime', 'Staff House', 'Total', 'Total Pay', 'Status']],
-      body: tableData,
+      body: tableBody,
       startY: 40,
       styles: { fontSize: 8 },
       headStyles: { fillColor: [16, 185, 129] },
@@ -446,9 +509,19 @@ export function PayrollReports() {
   };
 
   const exportToCSV = () => {
-    if (payrollData.length === 0) return;
+    const dataToExport = groupByUser ? getGroupedPayrollData() : payrollData;
+    if (dataToExport.length === 0) return;
 
-    const headers = [
+    const headers = groupByUser ? [
+      'Employee',
+      'Department', 
+      'Total Hours',
+      'Overtime Hours',
+      'Base Salary (₱)',
+      'Overtime Pay (₱)',
+      'Total Deductions (₱)',
+      'Total Salary (₱)'
+    ] : [
       'Employee',
       'Department',
       'Clock In',
@@ -465,22 +538,28 @@ export function PayrollReports() {
       'Status'
     ];
 
-    const rows = payrollData.map(entry => [
-      entry.username,
-      entry.department,
-      entry.clock_in_time ? new Date(entry.clock_in_time).toLocaleString() : 'N/A',
-      entry.clock_out_time ? new Date(entry.clock_out_time).toLocaleString() : 'N/A',
-      entry.total_hours.toFixed(2),
-      entry.overtime_hours.toFixed(2),
-      entry.undertime_hours.toFixed(2),
-      entry.base_salary.toFixed(2),
-      entry.overtime_pay.toFixed(2),
-      entry.undertime_deduction.toFixed(2),
-      entry.staff_house_deduction.toFixed(2),
-      entry.total_salary.toFixed(2),
-      entry.total_pay_salary.toFixed(2),
-      entry.status
-    ]);
+    const rows = groupByUser
+      ? dataToExport.map(group => [
+          group.username,
+          group.department,
+          group.totals.total_hours.toFixed(1),
+          group.totals.overtime_hours.toFixed(1),
+          group.totals.base_salary.toFixed(2),
+          group.totals.overtime_pay.toFixed(2),
+          (group.totals.undertime_deduction + group.totals.staff_house_deduction).toFixed(2),
+          group.totals.total_salary.toFixed(2)
+        ])
+      : dataToExport.map(entry => [
+          entry.username,
+          entry.department,
+          `${formatDate(entry.week_start)} - ${formatDate(entry.week_end)}`,
+          parseFloat(entry.total_hours).toFixed(1),
+          parseFloat(entry.overtime_hours).toFixed(1),
+          parseFloat(entry.base_salary).toFixed(2),
+          parseFloat(entry.overtime_pay).toFixed(2),
+          (parseFloat(entry.undertime_deduction) + parseFloat(entry.staff_house_deduction)).toFixed(2),
+          parseFloat(entry.total_salary).toFixed(2)
+        ]);
 
     const csvContent = [headers, ...rows]
       .map(row => row.map(field => `"${field}"`).join(','))
@@ -489,19 +568,7 @@ export function PayrollReports() {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    
-    let filename = 'payroll_report_';
-    if (generationMode === 'week') {
-      filename += `week_${selectedWeek}`;
-    } else {
-      const dateRange = selectedDates.length > 1 
-        ? `${selectedDates[0]}_to_${selectedDates[selectedDates.length - 1]}`
-        : selectedDates[0];
-      filename += dateRange;
-    }
-    filename += '.csv';
-    
-    link.download = filename;
+    link.download = `payroll_report_${groupByUser ? 'grouped_' : ''}${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
   };
 
@@ -547,6 +614,47 @@ export function PayrollReports() {
 
   const weekOptions = generateWeekOptions();
   const dateOptions = generateDateOptions();
+
+  const calculateTotals = () => {
+    const dataToCalculate = groupByUser ? getGroupedPayrollData() : payrollData;
+    
+    if (groupByUser) {
+      return dataToCalculate.reduce((totals, group) => ({
+        totalHours: totals.totalHours + group.totals.total_hours,
+        overtimeHours: totals.overtimeHours + group.totals.overtime_hours,
+        baseSalary: totals.baseSalary + group.totals.base_salary,
+        overtimePay: totals.overtimePay + group.totals.overtime_pay,
+        totalDeductions: totals.totalDeductions + group.totals.undertime_deduction + group.totals.staff_house_deduction,
+        totalSalary: totals.totalSalary + group.totals.total_salary
+      }), {
+        totalHours: 0,
+        overtimeHours: 0,
+        baseSalary: 0,
+        overtimePay: 0,
+        totalDeductions: 0,
+        totalSalary: 0
+      });
+    }
+    
+    return dataToCalculate.reduce((totals, entry) => ({
+      totalHours: totals.totalHours + (parseFloat(entry.total_hours) || 0),
+      overtimeHours: totals.overtimeHours + (parseFloat(entry.overtime_hours) || 0),
+      baseSalary: totals.baseSalary + (parseFloat(entry.base_salary) || 0),
+      overtimePay: totals.overtimePay + (parseFloat(entry.overtime_pay) || 0),
+      totalDeductions: totals.totalDeductions + (parseFloat(entry.undertime_deduction) || 0) + (parseFloat(entry.staff_house_deduction) || 0),
+      totalSalary: totals.totalSalary + (parseFloat(entry.total_salary) || 0)
+    }), {
+      totalHours: 0,
+      overtimeHours: 0,
+      baseSalary: 0,
+      overtimePay: 0,
+      totalDeductions: 0,
+      totalSalary: 0
+    });
+  };
+
+  const totals = calculateTotals();
+  const groupedData = getGroupedPayrollData();
 
   return (
     <div>
@@ -701,7 +809,7 @@ export function PayrollReports() {
       {/* Search and Filter */}
       {payrollData.length > 0 && (
         <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl p-6 mb-6 shadow-lg border border-slate-700/50">
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 Search Employees
@@ -736,6 +844,20 @@ export function PayrollReports() {
                 </select>
               </div>
             </div>
+          
+          <div>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={groupByUser}
+                onChange={(e) => setGroupByUser(e.target.checked)}
+                className="rounded border-slate-600 text-emerald-600 focus:ring-emerald-500 bg-slate-700/50"
+              />
+              <span className="text-sm text-slate-300">Group by User</span>
+            </label>
+            <p className="text-xs text-slate-400 mt-1">
+              Show total amounts per user instead of individual entries
+            </p>
           </div>
         </div>
       )}
@@ -744,14 +866,11 @@ export function PayrollReports() {
       {filteredPayrollData.length > 0 && (
         <div className="grid md:grid-cols-5 gap-4 mb-6">
           <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl p-4 shadow-lg border border-slate-700/50">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-400">Total Employees</p>
-                <p className="text-2xl font-bold text-white">{filteredPayrollData.length}</p>
-              </div>
-              <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 p-3 rounded-lg">
-                <Users className="w-6 h-6 text-blue-400" />
-              </div>
+            <div className="text-center">
+              <p className="text-sm text-slate-400">{groupByUser ? 'Total Users' : 'Total Entries'}</p>
+              <p className="text-2xl font-bold text-blue-400">
+                {groupByUser ? groupedData.length : payrollData.length}
+              </p>
             </div>
           </div>
 
@@ -829,7 +948,7 @@ export function PayrollReports() {
         <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl shadow-lg overflow-hidden border border-slate-700/50">
           <div className="bg-slate-700/50 px-6 py-4 border-b border-slate-600/50">
             <h3 className="text-lg font-semibold text-white">
-              Payroll Report - {generationMode === 'week' 
+              Payroll Report {groupByUser ? '(Grouped by User)' : ''} - {generationMode === 'week' 
                 ? `Week: ${formatDate(selectedWeek)} - ${formatDate(getWeekEnd(selectedWeek))}`
                 : selectedDates.length > 1 
                   ? `${selectedDates[0]} to ${selectedDates[selectedDates.length - 1]}`
@@ -837,7 +956,7 @@ export function PayrollReports() {
               }
             </h3>
             <p className="text-sm text-slate-400 mt-1">
-              {filteredPayrollData.length} employees • Period Total: ₱{Number(totalSalary).toFixed(2)} • Cumulative Total: ₱{Number(totalPaySalary).toFixed(2)}
+              {groupByUser ? `${groupedData.length} users` : `${payrollData.length} entries`} • Period Total: ₱{Number(totalSalary).toFixed(2)} • Cumulative Total: ₱{Number(totalPaySalary).toFixed(2)}
             </p>
           </div>
           <div className="overflow-x-auto">
@@ -846,7 +965,9 @@ export function PayrollReports() {
                 <tr>
                   <th className="text-left py-3 px-4 font-semibold text-slate-300">Employee</th>
                   <th className="text-left py-3 px-4 font-semibold text-slate-300">Department</th>
-                  <th className="text-left py-3 px-4 font-semibold text-slate-300">Time</th>
+                  {!groupByUser && (
+                    <th className="text-left py-3 px-4 font-semibold text-slate-300">Time</th>
+                  )}
                   <th className="text-right py-3 px-4 font-semibold text-slate-300">Hours</th>
                   <th className="text-right py-3 px-4 font-semibold text-slate-300">Base Pay</th>
                   <th className="text-right py-3 px-4 font-semibold text-slate-300">Overtime</th>
@@ -854,90 +975,138 @@ export function PayrollReports() {
                   <th className="text-right py-3 px-4 font-semibold text-slate-300">Total</th>
                   <th className="text-right py-3 px-4 font-semibold text-slate-300">Total Pay</th>
                   <th className="text-center py-3 px-4 font-semibold text-slate-300">Status</th>
-                  <th className="text-center py-3 px-4 font-semibold text-slate-300">Actions</th>
+                  {!groupByUser && (
+                    <th className="text-center py-3 px-4 font-semibold text-slate-300">Actions</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-700/50">
-                {filteredPayrollData.map((entry) => (
-                  <tr key={entry.id} className="hover:bg-slate-700/30 transition-colors">
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-3">
-                        <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 p-2 rounded-lg">
-                          <Users className="w-4 h-4 text-blue-400" />
+                {groupByUser ? (
+                  groupedData.map((group, index) => (
+                    <tr key={`group-${index}`} className="hover:bg-slate-700/30 transition-colors">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="bg-gradient-to-br from-purple-500/20 to-purple-600/20 p-2 rounded-lg">
+                            <Users className="w-4 h-4 text-purple-400" />
+                          </div>
+                          <div>
+                            <span className="font-medium text-white">{group.username}</span>
+                            <p className="text-xs text-slate-400">{group.entries.length} entries</p>
+                          </div>
                         </div>
-                        <span className="font-medium text-white">{entry.username}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-slate-300">{entry.department}</td>
-                    <td className="py-3 px-4">
-                      <div className="text-sm">
-                        <p className="text-slate-300">
-                          In: {entry.clock_in_time ? new Date(entry.clock_in_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
-                        </p>
-                        <p className="text-slate-400">
-                          Out: {entry.clock_out_time ? new Date(entry.clock_out_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
-                        </p>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <div>
-                        <p className="text-white">{Number(entry.total_hours).toFixed(2)}h</p>
-                        {entry.overtime_hours > 0 && (
-                          <p className="text-sm text-orange-400">+{Number(entry.overtime_hours).toFixed(2)}h OT</p>
+                      </td>
+                      <td className="py-3 px-4 text-slate-300">{group.department}</td>
+                      <td className="py-3 px-4 text-right text-white">
+                        {group.totals.total_hours.toFixed(1)}h
+                        {group.totals.overtime_hours > 0 && (
+                          <p className="text-sm text-orange-400">+{group.totals.overtime_hours.toFixed(1)}h OT</p>
                         )}
-                        {entry.undertime_hours > 0 && (
-                          <p className="text-sm text-red-400">-{Number(entry.undertime_hours).toFixed(2)}h late</p>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-right text-white">₱{Number(entry.base_salary).toFixed(2)}</td>
-                    <td className="py-3 px-4 text-right text-emerald-400">
-                      {entry.overtime_pay > 0 ? `₱${Number(entry.overtime_pay).toFixed(2)}` : '-'}
-                    </td>
-                    <td className="py-3 px-4 text-right text-red-400">
-                      {(entry.undertime_deduction + entry.staff_house_deduction) > 0 
-                        ? `₱${(entry.undertime_deduction + entry.staff_house_deduction).toFixed(2)}` 
-                        : '-'}
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <p className="font-bold text-white">₱{Number(entry.total_salary).toFixed(2)}</p>
-                    </td>
-                    <td className="py-3 px-4 text-right">
-                      <p className="font-bold text-purple-400">₱{Number(entry.total_pay_salary).toFixed(2)}</p>
-                      <p className="text-xs text-slate-400">Cumulative</p>
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        entry.status === 'released' 
-                          ? 'bg-emerald-900/20 text-emerald-400 border border-emerald-800/50'
-                          : 'bg-yellow-900/20 text-yellow-400 border border-yellow-800/50'
-                      }`}>
-                        {entry.status === 'released' ? 'Released' : 'Pending'}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => handleEditEntry(entry)}
-                          className="text-blue-400 hover:text-blue-300 p-1.5 rounded-lg hover:bg-blue-900/30 transition-all duration-200"
-                          title="Edit Entry"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            setDeletingEntry(entry);
-                            setShowDeleteModal(true);
-                          }}
-                          className="text-red-400 hover:text-red-300 p-1.5 rounded-lg hover:bg-red-900/30 transition-all duration-200"
-                          title="Delete Entry"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="py-3 px-4 text-right text-white">₱{group.totals.base_salary.toFixed(2)}</td>
+                      <td className="py-3 px-4 text-right text-emerald-400">
+                        {group.totals.overtime_pay > 0 ? `₱${group.totals.overtime_pay.toFixed(2)}` : '-'}
+                      </td>
+                      <td className="py-3 px-4 text-right text-red-400">
+                        {(group.totals.undertime_deduction + group.totals.staff_house_deduction) > 0 
+                          ? `₱${(group.totals.undertime_deduction + group.totals.staff_house_deduction).toFixed(2)}` 
+                          : '-'}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <p className="font-bold text-white">₱{group.totals.total_salary.toFixed(2)}</p>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <p className="font-bold text-purple-400">₱{group.totals.total_salary.toFixed(2)}</p>
+                        <p className="text-xs text-slate-400">Grouped</p>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-900/20 text-blue-400 border border-blue-800/50">
+                          Grouped
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  filteredPayrollData.map((entry) => (
+                    <tr key={entry.id} className="hover:bg-slate-700/30 transition-colors">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-3">
+                          <div className="bg-gradient-to-br from-blue-500/20 to-blue-600/20 p-2 rounded-lg">
+                            <Users className="w-4 h-4 text-blue-400" />
+                          </div>
+                          <span className="font-medium text-white">{entry.username}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-slate-300">{entry.department}</td>
+                      <td className="py-3 px-4">
+                        <div className="text-sm">
+                          <p className="text-slate-300">
+                            In: {entry.clock_in_time ? new Date(entry.clock_in_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                          </p>
+                          <p className="text-slate-400">
+                            Out: {entry.clock_out_time ? new Date(entry.clock_out_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                          </p>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <div>
+                          <p className="text-white">{Number(entry.total_hours).toFixed(2)}h</p>
+                          {entry.overtime_hours > 0 && (
+                            <p className="text-sm text-orange-400">+{Number(entry.overtime_hours).toFixed(2)}h OT</p>
+                          )}
+                          {entry.undertime_hours > 0 && (
+                            <p className="text-sm text-red-400">-{Number(entry.undertime_hours).toFixed(2)}h late</p>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-right text-white">₱{Number(entry.base_salary).toFixed(2)}</td>
+                      <td className="py-3 px-4 text-right text-emerald-400">
+                        {entry.overtime_pay > 0 ? `₱${Number(entry.overtime_pay).toFixed(2)}` : '-'}
+                      </td>
+                      <td className="py-3 px-4 text-right text-red-400">
+                        {(entry.undertime_deduction + entry.staff_house_deduction) > 0 
+                          ? `₱${(entry.undertime_deduction + entry.staff_house_deduction).toFixed(2)}` 
+                          : '-'}
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <p className="font-bold text-white">₱{Number(entry.total_salary).toFixed(2)}</p>
+                      </td>
+                      <td className="py-3 px-4 text-right">
+                        <p className="font-bold text-purple-400">₱{Number(entry.total_pay_salary).toFixed(2)}</p>
+                        <p className="text-xs text-slate-400">Cumulative</p>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          entry.status === 'released' 
+                            ? 'bg-emerald-900/20 text-emerald-400 border border-emerald-800/50'
+                            : 'bg-yellow-900/20 text-yellow-400 border border-yellow-800/50'
+                        }`}>
+                          {entry.status === 'released' ? 'Released' : 'Pending'}
+                        </span>
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <button
+                            onClick={() => handleEditEntry(entry)}
+                            className="text-blue-400 hover:text-blue-300 p-1.5 rounded-lg hover:bg-blue-900/30 transition-all duration-200"
+                            title="Edit Entry"
+                          >
+                            <Edit3 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              setDeletingEntry(entry);
+                              setShowDeleteModal(true);
+                            }}
+                            className="text-red-400 hover:text-red-300 p-1.5 rounded-lg hover:bg-red-900/30 transition-all duration-200"
+                            title="Delete Entry"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
