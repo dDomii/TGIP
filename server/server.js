@@ -391,8 +391,7 @@ app.post('/api/payslips/generate', authenticate, async (req, res) => {
     res.json(payslips);
     
     // Log the payslip generation
-    const logDates = selectedDates || (startDate && endDate ? [startDate, endDate] : [weekStart]);
-    await logPayslipAction(req.user.userId, 'generated', logDates || [], payslips.payslips ? payslips.payslips.length : 0, userIds || null);
+    await logPayslipAction(req.user.userId, 'generated', selectedDates || [startDate || weekStart], payslips.length, userIds);
   } catch (error) {
     console.error('Error generating payslips:', error);
     res.status(500).json({ message: 'Server error' });
@@ -533,7 +532,7 @@ app.post('/api/payslips/release', authenticate, async (req, res) => {
     });
     
     // Log the payslip release
-    await logPayslipAction(req.user.userId, 'released', selectedDates || [], result.affectedRows, userIds || null);
+    await logPayslipAction(req.user.userId, 'released', selectedDates || [], result.affectedRows, userIds);
   } catch (error) {
     console.error('Error releasing payslips:', error);
     res.status(500).json({ message: 'Server error' });
@@ -543,17 +542,9 @@ app.post('/api/payslips/release', authenticate, async (req, res) => {
 // Helper function to log payslip actions
 async function logPayslipAction(adminId, action, dates, payslipCount, userIds = null) {
   try {
-    // Ensure dates is an array and has valid values
-    const datesArray = Array.isArray(dates) ? dates.filter(d => d != null) : [];
-    const periodStart = datesArray.length > 0 ? datesArray[0] : null;
-    const periodEnd = datesArray.length > 1 ? datesArray[datesArray.length - 1] : periodStart;
+    const periodStart = dates[0];
+    const periodEnd = dates[dates.length - 1] || dates[0];
     const userIdsJson = userIds ? JSON.stringify(userIds) : null;
-    
-    // Skip logging if we don't have essential data
-    if (!periodStart) {
-      console.warn('Skipping payslip log: no valid dates provided');
-      return;
-    }
     
     await pool.execute(
       'INSERT INTO payslip_logs (admin_id, action, period_start, period_end, payslip_count, user_ids) VALUES (?, ?, ?, ?, ?, ?)',
@@ -572,14 +563,9 @@ app.post('/api/payslip-logs', authenticate, async (req, res) => {
   const { action, selectedDates, payslipCount, userIds } = req.body;
   
   try {
-    const datesArray = Array.isArray(selectedDates) ? selectedDates.filter(d => d != null) : [];
-    const periodStart = datesArray.length > 0 ? datesArray[0] : null;
-    const periodEnd = datesArray.length > 1 ? datesArray[datesArray.length - 1] : periodStart;
+    const periodStart = selectedDates[0];
+    const periodEnd = selectedDates[selectedDates.length - 1];
     const userIdsJson = userIds ? JSON.stringify(userIds) : null;
-    
-    if (!periodStart) {
-      return res.status(400).json({ success: false, message: 'Valid dates are required' });
-    }
     
     await pool.execute(
       'INSERT INTO payslip_logs (admin_id, action, period_start, period_end, payslip_count, user_ids) VALUES (?, ?, ?, ?, ?, ?)',
