@@ -736,7 +736,7 @@ export function PayrollReports() {
       {/* Search and Filter */}
       {payrollData.length > 0 && (
         <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl p-6 mb-6 shadow-lg border border-slate-700/50">
-          <div className="grid md:grid-cols-2 gap-4">
+          <div className="grid md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
                 Search Employees
@@ -770,6 +770,27 @@ export function PayrollReports() {
                   ))}
                 </select>
               </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                View Options
+              </label>
+              <div className="flex items-center gap-3 p-2 bg-slate-700/30 rounded-lg border border-slate-600/50">
+                <span className="text-sm text-slate-300">Group by User</span>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={groupByUser}
+                    onChange={(e) => setGroupByUser(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-slate-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-emerald-300/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                </label>
+              </div>
+              <p className="text-xs text-slate-400 mt-1">
+                {groupByUser ? 'Showing aggregated totals per user' : 'Showing individual payslip entries'}
+              </p>
             </div>
           </div>
         </div>
