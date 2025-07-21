@@ -68,6 +68,7 @@ export function PayrollReports() {
   const [bulkTotalAmount, setBulkTotalAmount] = useState('');
   const [bulkTotalType, setBulkTotalType] = useState<'fixed' | 'percentage'>('fixed');
   const [bulkTotalPercentage, setBulkTotalPercentage] = useState('');
+  const [groupByUser, setGroupByUser] = useState(false);
   const { token } = useAuth();
 
   useEffect(() => {
@@ -545,6 +546,39 @@ export function PayrollReports() {
   const totalSalary = filteredPayrollData.reduce((sum, entry) => sum + entry.total_salary, 0);
   const totalHours = filteredPayrollData.reduce((sum, entry) => sum + entry.total_hours, 0);
   const totalOvertimeHours = filteredPayrollData.reduce((sum, entry) => sum + entry.overtime_hours, 0);
+
+  // Group payroll data by user
+  const groupedPayrollData = filteredPayrollData.reduce((acc, entry) => {
+    const key = `${entry.user_id}-${entry.username}`;
+    if (!acc[key]) {
+      acc[key] = {
+        user_id: entry.user_id,
+        username: entry.username,
+        department: entry.department,
+        entries: [],
+        totalSalary: 0,
+        totalHours: 0,
+        totalOvertimeHours: 0,
+        totalOvertimePay: 0,
+        totalDeductions: 0,
+        totalBaseSalary: 0,
+        entryCount: 0
+      };
+    }
+    
+    acc[key].entries.push(entry);
+    acc[key].totalSalary += entry.total_salary;
+    acc[key].totalHours += entry.total_hours;
+    acc[key].totalOvertimeHours += entry.overtime_hours;
+    acc[key].totalOvertimePay += entry.overtime_pay;
+    acc[key].totalDeductions += (entry.undertime_deduction + entry.staff_house_deduction);
+    acc[key].totalBaseSalary += entry.base_salary;
+    acc[key].entryCount += 1;
+    
+    return acc;
+  }, {} as Record<string, any>);
+
+  const userGroups = Object.values(groupedPayrollData);
 
   const weekOptions = generateWeekOptions();
   const dateOptions = generateDateOptions();
