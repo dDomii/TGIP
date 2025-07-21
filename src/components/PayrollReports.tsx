@@ -961,8 +961,6 @@ export function PayrollReports() {
             </table>
           </div>
         </div>
-        </div>
-        )
       ) : (generationMode === 'week' && selectedWeek) || (generationMode === 'dates' && selectedDates.length > 0) ? (
         <div className="text-center py-12">
           <div className="bg-slate-700/30 p-4 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
