@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { API_ENDPOINTS, buildApiUrl } from '../config/api';
-import { Calendar, Download, Edit3, Save, X, AlertTriangle, Calculator, PhilippinePeso, Users, Clock, TrendingUp, Filter, Search, FileText, Plus, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Calendar, Download, Edit3, Save, X, AlertTriangle, Calculator, PhilippinePeso, Users, Clock, TrendingUp, Filter, Search, FileText, Plus, ToggleLeft, ToggleRight, Eye, CheckCircle, Trash2 } from 'lucide-react';
 import { Calculator } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { autoTable } from 'jspdf-autotable';
@@ -673,9 +673,9 @@ export function PayrollReports() {
                           type="checkbox"
                           checked={selectedDates.includes(date)}
                           onChange={() => handleDateToggle(date)}
-                          className="rounded border-slate-600 text-emerald-600 focus:ring-emerald-500 bg-slate-700/50"
+                          className="rounded border-[#4A5B7C] text-[#F5CE00] focus:ring-[#F5CE00] bg-[#2C3E50]"
                         />
-                        <span className="text-sm text-slate-300">
+                        <span className="text-sm text-white font-['Gotham_Book']">
                           {new Date(date).toLocaleDateString('en-US', { 
                             weekday: 'short', 
                             month: 'short', 
@@ -728,7 +728,7 @@ export function PayrollReports() {
           <button
             onClick={generatePayslips}
             disabled={loading || (generationMode === 'week' && !selectedWeek) || (generationMode === 'dates' && selectedDates.length === 0)}
-            className="bg-gradient-to-r from-emerald-500 to-green-600 text-white px-6 py-3 rounded-lg font-medium hover:from-emerald-600 hover:to-green-700 disabled:opacity-50 btn-enhanced flex items-center gap-2 shadow-lg"
+            className="bg-gradient-to-r from-[#3B4A6B] to-[#4A5B7C] text-white px-6 py-3 rounded-lg font-medium hover:from-[#4A5B7C] hover:to-[#5A6B8C] disabled:opacity-50 btn-enhanced flex items-center gap-2 shadow-lg font-['Gotham_Book']"
           >
             <FileText className="w-4 h-4" />
             {loading ? 'Generating...' : 'Generate Payslips'}
@@ -746,7 +746,7 @@ export function PayrollReports() {
           <button
             onClick={releasePayslips}
             disabled={loading || (generationMode === 'week' && !selectedWeek) || (generationMode === 'dates' && selectedDates.length === 0)}
-            className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-3 rounded-lg font-medium hover:from-orange-600 hover:to-orange-700 disabled:opacity-50 btn-enhanced flex items-center gap-2 shadow-lg"
+            className="bg-gradient-to-r from-[#DB3E27] to-[#E74C3C] text-white px-6 py-3 rounded-lg font-medium hover:from-[#E74C3C] hover:to-[#F1C40F] disabled:opacity-50 btn-enhanced flex items-center gap-2 shadow-lg font-['Gotham_Book']"
           >
             <CheckCircle className="w-4 h-4" />
             Release Payslips
@@ -754,36 +754,59 @@ export function PayrollReports() {
         </div>
       </div>
 
+      {/* Group By User Toggle */}
+      {payrollData.length > 0 && (
+        <div className="bg-[#3B4A6B] backdrop-blur-sm rounded-xl p-4 mb-6 shadow-lg border border-[#4A5B7C]">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-white font-['Gotham_Light']">View Options</h3>
+              <p className="text-sm text-slate-300 font-['Gotham_Book']">
+                {groupByUser ? 'Showing consolidated view grouped by employee' : 'Showing individual payslip entries'}
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-white font-['Gotham_Book']">Group by User</span>
+              <button
+                onClick={() => setGroupByUser(!groupByUser)}
+                className={`p-1 rounded-lg transition-all duration-200 ${groupByUser ? 'text-[#F5CE00]' : 'text-slate-400'}`}
+              >
+                {groupByUser ? <ToggleRight className="w-6 h-6" /> : <ToggleLeft className="w-6 h-6" />}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Search and Filter */}
       {payrollData.length > 0 && (
-        <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl p-6 mb-6 shadow-lg border border-slate-700/50">
+        <div className="bg-[#3B4A6B] backdrop-blur-sm rounded-xl p-6 mb-6 shadow-lg border border-[#4A5B7C]">
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-white mb-2 font-['Gotham_Light']">
                 Search Employees
               </label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-300 w-4 h-4" />
                 <input
                   type="text"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-slate-700/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-white placeholder-slate-400"
+                  className="w-full pl-10 pr-4 py-2 bg-[#2C3E50] border border-[#4A5B7C] rounded-lg focus:ring-2 focus:ring-[#F5CE00] focus:border-transparent text-white placeholder-slate-300 font-['Gotham_Book']"
                   placeholder="Search by name or department..."
                 />
               </div>
             </div>
             
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
+              <label className="block text-sm font-medium text-white mb-2 font-['Gotham_Light']">
                 Filter by Department
               </label>
               <div className="relative">
-                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-300 w-4 h-4" />
                 <select
                   value={selectedDepartment}
                   onChange={(e) => setSelectedDepartment(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 bg-slate-700/50 border border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-white"
+                  className="w-full pl-10 pr-4 py-2 bg-[#2C3E50] border border-[#4A5B7C] rounded-lg focus:ring-2 focus:ring-[#F5CE00] focus:border-transparent text-white font-['Gotham_Book']"
                 >
                   <option value="">All Departments</option>
                   {DEPARTMENTS.map(dept => (
@@ -874,18 +897,27 @@ export function PayrollReports() {
       {filteredPayrollData.length > 0 && (
         <div className="flex gap-4 mb-6">
           <button
+            onClick={exportToCSV}
+            className="bg-gradient-to-r from-[#3B4A6B] to-[#4A5B7C] text-white px-4 py-2 rounded-lg font-medium hover:from-[#4A5B7C] hover:to-[#5A6B8C] transition-all duration-200 flex items-center gap-2 shadow-lg font-['Gotham_Book']"
+          >
+            <Download className="w-4 h-4" />
+            Export CSV
+          </button>
+          
+          <button
             onClick={exportToPDF}
-            className="bg-gradient-to-r from-red-500 to-red-600 text-white px-4 py-2 rounded-lg font-medium hover:from-red-600 hover:to-red-700 transition-all duration-200 flex items-center gap-2 shadow-lg"
+            className="bg-gradient-to-r from-[#DB3E27] to-[#E74C3C] text-white px-4 py-2 rounded-lg font-medium hover:from-[#E74C3C] hover:to-[#F1C40F] transition-all duration-200 flex items-center gap-2 shadow-lg font-['Gotham_Book']"
           >
             <Download className="w-4 h-4" />
             Export PDF
           </button>
+          
           <button
-            onClick={exportToCSV}
-            className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-lg font-medium hover:from-green-600 hover:to-green-700 transition-all duration-200 flex items-center gap-2 shadow-lg"
+            onClick={() => setShowBulkModal(true)}
+            className="bg-gradient-to-r from-[#F39C8B] to-[#F5B7B1] text-white px-4 py-2 rounded-lg font-medium hover:from-[#F5B7B1] hover:to-[#F8C471] transition-all duration-200 flex items-center gap-2 shadow-lg font-['Gotham_Book']"
           >
-            <Download className="w-4 h-4" />
-            Export CSV
+            <Plus className="w-4 h-4" />
+            Bulk Add Total
           </button>
         </div>
       )}
