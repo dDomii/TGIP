@@ -1298,6 +1298,7 @@ export function PayrollReports() {
                 onClick={handleDeleteEntry}
                 className="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white py-2 px-4 rounded-lg font-medium hover:from-red-600 hover:to-red-700 transition-all duration-200"
                 className="flex-1 bg-gradient-to-r from-[#F39C8B] to-[#F5B7B1] text-white py-2 px-4 rounded-lg font-medium hover:from-[#F5B7B1] hover:to-[#F8C471] disabled:opacity-50 btn-enhanced font-['Gotham_Book']"
+>
                 Delete Entry
               </button>
             </div>
