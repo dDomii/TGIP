@@ -703,7 +703,7 @@ export function PayrollReports() {
                     type="checkbox"
                     checked={selectedUsers.length === 0}
                     onChange={() => setSelectedUsers([])}
-                    className="rounded border-slate-600 text-emerald-600 focus:ring-emerald-500 bg-slate-700/50"
+                    className="w-full p-3 bg-[#2C3E50] border border-[#4A5B7C] rounded-lg focus:ring-2 focus:ring-[#F5CE00] focus:border-transparent text-white font-['Gotham_Book']"
                   />
                   <span className="text-sm font-medium text-emerald-400">All Users</span>
                 </label>
@@ -1231,7 +1231,7 @@ export function PayrollReports() {
               <div className="flex items-start gap-3">
                 <AlertTriangle className="w-5 h-5 text-blue-400 mt-0.5" />
                 <div>
-                  <p className="text-sm font-medium text-blue-400 mb-1">Payroll Calculation Rules</p>
+                  <label className="block text-sm font-medium text-white mb-2 font-['Gotham_Light']">
                   <ul className="text-xs text-blue-300 space-y-1">
                     <li>• Work hours only count from 7:00 AM onwards</li>
                     <li>• Base pay is always ₱200, deductions applied for undertime</li>
@@ -1241,7 +1241,7 @@ export function PayrollReports() {
                 </div>
               </div>
             </div>
-            
+                  <label className="block text-sm font-medium text-white mb-2 font-['Gotham_Light']">
             <div className="flex gap-3">
               <button
                 onClick={() => {
