@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { API_ENDPOINTS, buildApiUrl } from '../config/api';
-import { Calendar, Download, FileText, Users, PhilippinePeso, Clock, Edit3, Save, X, AlertTriangle, CheckCircle, Filter, Search, Eye, Trash2, Play } from 'lucide-react';
+import { Calendar, Download, Edit3, Save, X, AlertTriangle, Calculator, PhilippinePeso, Users, Clock, TrendingUp, Filter, Search, FileText, Plus, ToggleLeft, ToggleRight } from 'lucide-react';
 import { Calculator } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { autoTable } from 'jspdf-autotable';
@@ -68,6 +68,7 @@ export function PayrollReports() {
   const [bulkTotalAmount, setBulkTotalAmount] = useState('');
   const [bulkTotalType, setBulkTotalType] = useState<'fixed' | 'percentage'>('fixed');
   const [bulkTotalPercentage, setBulkTotalPercentage] = useState('');
+  const [groupByUser, setGroupByUser] = useState(false);
   const [groupByUser, setGroupByUser] = useState(false);
   const { token } = useAuth();
 
@@ -608,8 +609,8 @@ export function PayrollReports() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-white">Payroll Management</h2>
-          <p className="text-slate-400">Generate and manage employee payslips</p>
+          <h2 className="text-2xl font-bold text-white font-['Gotham_Black'] tracking-wide">PAYROLL REPORTS</h2>
+          <p className="text-slate-400 font-['Gotham_Book']">Generate and manage payroll for selected periods</p>
         </div>
       </div>
 
