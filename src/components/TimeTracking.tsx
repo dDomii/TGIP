@@ -397,31 +397,31 @@ export function TimeTracking() {
   const isCurrentlyClockedIn = Boolean(todayEntry?.clock_in && !todayEntry.clock_out);
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6 min-h-screen bg-gradient-to-br from-slate-900 via-gray-900 to-slate-800">
+    <div className="max-w-7xl mx-auto p-6 space-y-6 min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Header Section */}
-      <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50 shadow-lg">
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-slate-200/60 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="bg-gradient-to-br from-[#DD3C27] to-[#F59888] p-3 rounded-xl shadow-lg">
+            <div className="bg-gradient-to-br from-indigo-500 to-purple-600 p-3 rounded-xl shadow-lg">
               <Clock className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">Welcome back, {user?.username}</h1>
-              <p className="text-slate-300 mt-1">{formatCurrentDate()}</p>
+              <h1 className="text-2xl font-bold text-slate-800">Welcome back, {user?.username}</h1>
+              <p className="text-slate-600 mt-1">{formatCurrentDate()}</p>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-sm text-slate-400 mb-1">Current Time</p>
-            <div className="text-2xl font-mono font-bold text-[#DD3C27]">{formatCurrentTime()}</div>
+            <p className="text-sm text-slate-500 mb-1">Current Time</p>
+            <div className="text-2xl font-mono font-bold text-indigo-600">{formatCurrentTime()}</div>
           </div>
         </div>
       </div>
 
       {/* Navigation Tabs */}
-      <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl border border-slate-700/50 shadow-lg overflow-hidden">
-        <div className="border-b border-slate-700/50">
+      <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-slate-200/60 shadow-lg overflow-hidden">
+        <div className="border-b border-slate-200/60">
           <nav className="flex justify-center p-4">
-            <div className="bg-slate-700/30 p-1 rounded-xl flex gap-2">
+            <div className="bg-slate-100/80 p-1 rounded-xl flex gap-2">
               {tabs.map((tab) => {
                 const Icon = tab.icon;
                 return (
@@ -430,8 +430,8 @@ export function TimeTracking() {
                     onClick={() => setActiveTab(tab.id as TabType)}
                     className={`btn-enhanced ${
                       activeTab === tab.id
-                        ? 'bg-gradient-to-r from-[#DD3C27] to-[#F59888] text-white shadow-lg transform scale-105'
-                        : 'text-slate-300 hover:text-white hover:bg-slate-600/50'
+                        ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-lg transform scale-105'
+                        : 'text-slate-600 hover:text-slate-800 hover:bg-slate-200/50'
                     } py-3 px-6 rounded-lg font-medium flex items-center gap-2 transition-all duration-300`}
                   >
                     <Icon className="w-5 h-5" />
@@ -449,20 +449,20 @@ export function TimeTracking() {
               {/* Progress Tracker */}
               {hoursProgress && (
                 <div className="lg:col-span-1">
-                  <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50 h-full">
+                  <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-slate-200/60 h-full shadow-lg">
                     <div className="flex items-center gap-3 mb-6">
-                      <Target className="w-6 h-6 text-[#F5CE00]" />
-                      <h3 className="text-lg font-semibold text-white">Hours Progress</h3>
+                      <Target className="w-6 h-6 text-emerald-500" />
+                      <h3 className="text-lg font-semibold text-slate-800">Hours Progress</h3>
                     </div>
                     
                     {/* Circular Progress */}
                     <div className="flex justify-center mb-6">
                       <div className="relative w-32 h-32">
                         <svg className="w-32 h-32 transform -rotate-90" viewBox="0 0 120 120">
-                          <circle cx="60" cy="60" r="50" stroke="currentColor" strokeWidth="8" fill="none" className="text-slate-600/30" />
+                          <circle cx="60" cy="60" r="50" stroke="currentColor" strokeWidth="8" fill="none" className="text-slate-200" />
                           <circle
                             cx="60" cy="60" r="50" stroke="currentColor" strokeWidth="8" fill="none" strokeLinecap="round"
-                            className={hoursProgress.isCompleted ? 'text-[#F5CE00]' : 'text-[#DD3C27]'}
+                            className={hoursProgress.isCompleted ? 'text-emerald-500' : 'text-indigo-500'}
                             style={{
                               strokeDasharray: `${2 * Math.PI * 50}`,
                               strokeDashoffset: `${2 * Math.PI * 50 * (1 - hoursProgress.progressPercentage / 100)}`,
@@ -472,10 +472,10 @@ export function TimeTracking() {
                         </svg>
                         <div className="absolute inset-0 flex items-center justify-center">
                           <div className="text-center">
-                            <div className={`text-2xl font-bold ${hoursProgress.isCompleted ? 'text-[#F5CE00]' : 'text-[#DD3C27]'}`}>
+                            <div className={`text-2xl font-bold ${hoursProgress.isCompleted ? 'text-emerald-600' : 'text-indigo-600'}`}>
                               {Number(hoursProgress.progressPercentage).toFixed(0)}%
                             </div>
-                            <div className="text-xs text-slate-400 mt-1">Complete</div>
+                            <div className="text-xs text-slate-500 mt-1">Complete</div>
                           </div>
                         </div>
                       </div>
@@ -483,34 +483,34 @@ export function TimeTracking() {
                     
                     <div className="space-y-4">
                       <div className="flex justify-between items-center">
-                        <span className="text-slate-400">Required Hours:</span>
-                        <span className="text-white font-semibold">{Number(hoursProgress.requiredHours).toFixed(1)}h</span>
+                        <span className="text-slate-600">Required Hours:</span>
+                        <span className="text-slate-800 font-semibold">{Number(hoursProgress.requiredHours).toFixed(1)}h</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-slate-400">Worked Hours:</span>
-                        <span className="text-[#DD3C27] font-semibold">{Number(hoursProgress.workedHours).toFixed(1)}h</span>
+                        <span className="text-slate-600">Worked Hours:</span>
+                        <span className="text-indigo-600 font-semibold">{Number(hoursProgress.workedHours).toFixed(1)}h</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-slate-400">Remaining:</span>
-                        <span className={`font-semibold ${hoursProgress.isCompleted ? 'text-[#F5CE00]' : 'text-[#F59888]'}`}>
+                        <span className="text-slate-600">Remaining:</span>
+                        <span className={`font-semibold ${hoursProgress.isCompleted ? 'text-emerald-600' : 'text-rose-500'}`}>
                           {hoursProgress.isCompleted ? 'Completed!' : `${Number(hoursProgress.remainingHours).toFixed(1)}h`}
                         </span>
                       </div>
-                      <div className="mt-4 p-4 bg-slate-700/30 rounded-lg border border-slate-600/50">
-                        <p className="text-sm text-white">
+                      <div className="mt-4 p-4 bg-slate-50/80 rounded-lg border border-slate-200/60">
+                        <p className="text-sm text-slate-800">
                           <strong>Motivational Note:</strong>
                         </p>
-                        <p className="text-[16px] text-slate-300">Keep Going, para sa 500K ni Dom at Lev!</p>
+                        <p className="text-slate-600">Keep Going, para sa 500K ni Dom at Lev!</p>
                       </div>
                     </div>
                     
                     {hoursProgress.isCompleted && (
-                      <div className="bg-[#F5CE00]/20 p-4 rounded-lg border border-[#F5CE00]/50 mt-6">
+                      <div className="bg-emerald-50/80 p-4 rounded-lg border border-emerald-200/60 mt-6">
                         <div className="flex items-center gap-3">
-                          <Award className="w-5 h-5 text-[#F5CE00]" />
+                          <Award className="w-5 h-5 text-emerald-600" />
                           <div>
-                            <p className="text-[#F5CE00] font-semibold">Congratulations!</p>
-                            <p className="text-white text-sm">You've completed your required hours</p>
+                            <p className="text-emerald-700 font-semibold">Congratulations!</p>
+                            <p className="text-emerald-600 text-sm">You've completed your required hours</p>
                           </div>
                         </div>
                       </div>
@@ -523,75 +523,75 @@ export function TimeTracking() {
               <div className={`${hoursProgress ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
                 <div className="grid lg:grid-cols-2 gap-6 h-full">
                   {/* Today's Activity */}
-                  <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
+                  <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-slate-200/60 shadow-lg">
                     <div className="flex items-center gap-3 mb-6">
-                      <Calendar className="w-6 h-6 text-[#DD3C27]" />
-                      <h3 className="text-lg font-semibold text-white">Today's Activity</h3>
+                      <Calendar className="w-6 h-6 text-indigo-500" />
+                      <h3 className="text-lg font-semibold text-slate-800">Today's Activity</h3>
                     </div>
                     
                     {todayEntry ? (
                       <div className="space-y-6">
                         {/* Clock Times */}
                         <div className="grid grid-cols-2 gap-4">
-                          <div className="bg-[#DD3C27]/20 p-4 rounded-lg border border-[#DD3C27]/50">
+                          <div className="bg-emerald-50/80 p-4 rounded-lg border border-emerald-200/60">
                             <div className="flex items-center gap-2 mb-2">
-                              <Play className="w-4 h-4 text-[#DD3C27]" />
-                              <span className="text-sm text-[#DD3C27] font-medium">Clock In</span>
+                              <Play className="w-4 h-4 text-emerald-600" />
+                              <span className="text-sm text-emerald-700 font-medium">Clock In</span>
                             </div>
-                            <div className={`text-xl font-mono font-bold ${isLateClockIn() ? 'text-[#F59888]' : 'text-[#DD3C27]'}`}>
+                            <div className={`text-xl font-mono font-bold ${isLateClockIn() ? 'text-rose-600' : 'text-emerald-600'}`}>
                               {formatTime(todayEntry.clock_in).slice(0, -3)}
                             </div>
                             {isLateClockIn() && (
-                              <span className="bg-[#F59888]/20 text-[#F59888] px-2 py-1 rounded text-xs mt-2 inline-block border border-[#F59888]/50">
+                              <span className="bg-rose-100/80 text-rose-600 px-2 py-1 rounded text-xs mt-2 inline-block border border-rose-200/60">
                                 Late by {formatTimeDisplay(lateTime)}
                               </span>
                             )}
                           </div>
 
-                          <div className="bg-[#F59888]/20 p-4 rounded-lg border border-[#F59888]/50">
+                          <div className="bg-rose-50/80 p-4 rounded-lg border border-rose-200/60">
                             <div className="flex items-center gap-2 mb-2">
-                              <Square className="w-4 h-4 text-[#F59888]" />
-                              <span className="text-sm text-[#F59888] font-medium">Clock Out</span>
+                              <Square className="w-4 h-4 text-rose-600" />
+                              <span className="text-sm text-rose-700 font-medium">Clock Out</span>
                             </div>
-                            <div className="text-xl font-mono font-bold text-[#F59888]">
+                            <div className="text-xl font-mono font-bold text-rose-600">
                               {todayEntry.clock_out ? formatTime(todayEntry.clock_out).slice(0, -3) : 'Active'}
                             </div>
                             {!todayEntry.clock_out && (
                               <div className="flex items-center gap-2 mt-2">
-                                <div className="w-2 h-2 bg-[#F5CE00] rounded-full animate-pulse" />
-                                <span className="text-[#F5CE00] text-xs">Currently working</span>
+                                <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
+                                <span className="text-amber-600 text-xs">Currently working</span>
                               </div>
                             )}
                           </div>
                         </div>
 
                         {/* Worked Time Display */}
-                        <div className="bg-slate-700/30 p-4 rounded-lg border border-slate-600/50">
+                        <div className="bg-slate-50/80 p-4 rounded-lg border border-slate-200/60">
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
-                              <Timer className="w-5 h-5 text-white" />
-                              <span className="text-white font-semibold">Time Worked Today</span>
+                              <Timer className="w-5 h-5 text-slate-700" />
+                              <span className="text-slate-800 font-semibold">Time Worked Today</span>
                             </div>
                             {!todayEntry.clock_out && (
                               <div className="flex items-center gap-2">
-                                <div className="w-2 h-2 bg-[#F5CE00] rounded-full animate-pulse" />
-                                <span className="text-[#F5CE00] text-sm">Live</span>
+                                <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse" />
+                                <span className="text-amber-600 text-sm">Live</span>
                               </div>
                             )}
                           </div>
-                          <div className="text-3xl font-mono font-bold text-white">
+                          <div className="text-3xl font-mono font-bold text-slate-800">
                             {formatTimeDisplay(workedTime)}
                           </div>
                         </div>
 
                         {/* Status Alerts */}
                         {isAfterShiftHours() && !todayEntry.clock_out && (
-                          <div className="bg-[#F5CE00]/20 p-4 rounded-lg border border-[#F5CE00]/50">
+                          <div className="bg-amber-50/80 p-4 rounded-lg border border-amber-200/60">
                             <div className="flex items-center gap-3">
-                              <Zap className="w-5 h-5 text-[#F5CE00]" />
+                              <Zap className="w-5 h-5 text-amber-600" />
                               <div>
-                                <p className="text-[#F5CE00] font-semibold">Potential Overtime</p>
-                                <p className="text-white text-sm">{formatTimeDisplay(overtimeTime)} past 4:00 PM</p>
+                                <p className="text-amber-700 font-semibold">Potential Overtime</p>
+                                <p className="text-amber-600 text-sm">{formatTimeDisplay(overtimeTime)} past 4:00 PM</p>
                               </div>
                             </div>
                           </div>
@@ -600,26 +600,26 @@ export function TimeTracking() {
                         {todayEntry.overtime_requested == true && (
                           <div className={`p-4 rounded-lg border ${
                             todayEntry.overtime_approved === null || todayEntry.overtime_approved === undefined
-                              ? 'bg-[#F5CE00]/20 border-[#F5CE00]/50'
+                              ? 'bg-amber-50/80 border-amber-200/60'
                               : todayEntry.overtime_approved 
-                                ? 'bg-[#F5CE00]/20 border-[#F5CE00]/50'
-                                : 'bg-[#F59888]/20 border-[#F59888]/50'
+                                ? 'bg-emerald-50/80 border-emerald-200/60'
+                                : 'bg-rose-50/80 border-rose-200/60'
                           }`}>
                             <div className="flex items-center gap-3">
                               <AlertCircle className={`w-5 h-5 ${
                                 todayEntry.overtime_approved === null || todayEntry.overtime_approved === undefined
-                                  ? 'text-[#F5CE00]'
+                                  ? 'text-amber-600'
                                   : todayEntry.overtime_approved 
-                                    ? 'text-[#F5CE00]'
-                                    : 'text-[#F59888]'
+                                    ? 'text-emerald-600'
+                                    : 'text-rose-600'
                               }`} />
                               <div>
                                 <p className={`font-semibold ${
                                   todayEntry.overtime_approved === null || todayEntry.overtime_approved === undefined
-                                    ? 'text-[#F5CE00]'
+                                    ? 'text-amber-700'
                                     : todayEntry.overtime_approved 
-                                      ? 'text-[#F5CE00]'
-                                      : 'text-[#F59888]'
+                                      ? 'text-emerald-700'
+                                      : 'text-rose-700'
                                 }`}>
                                   {todayEntry.overtime_approved === null || todayEntry.overtime_approved === undefined
                                     ? 'Overtime Request Pending'
@@ -628,7 +628,7 @@ export function TimeTracking() {
                                       : 'Overtime Request Rejected ✗'
                                   }
                                 </p>
-                                <p className="text-sm text-slate-400">Waiting for admin review</p>
+                                <p className="text-sm text-slate-600">Waiting for admin review</p>
                               </div>
                             </div>
                           </div>
@@ -636,9 +636,9 @@ export function TimeTracking() {
                       </div>
                     ) : (
                       <div className="text-center py-12">
-                        <Clock className="w-16 h-16 text-slate-500 mx-auto mb-4" />
-                        <h4 className="text-lg font-semibold text-white mb-2">Ready to Start Your Day?</h4>
-                        <p className="text-slate-400">Click the Clock In button to begin tracking your time</p>
+                        <Clock className="w-16 h-16 text-slate-400 mx-auto mb-4" />
+                        <h4 className="text-lg font-semibold text-slate-800 mb-2">Ready to Start Your Day?</h4>
+                        <p className="text-slate-600">Click the Clock In button to begin tracking your time</p>
                       </div>
                     )}
                   </div>
@@ -646,9 +646,9 @@ export function TimeTracking() {
                   {/* Actions & Info Panel */}
                   <div className="space-y-6">
                     {/* Action Buttons */}
-                    <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
-                      <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                        <Zap className="w-5 h-5 text-[#DD3C27]" />
+                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-slate-200/60 shadow-lg">
+                      <h4 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                        <Zap className="w-5 h-5 text-indigo-500" />
                         Quick Actions
                       </h4>
                       
@@ -658,7 +658,7 @@ export function TimeTracking() {
                         onClick={handleClockIn}
                         disabled={isLoading || hasAnyClockInToday || isCurrentlyClockedIn }
 
-                        className="w-full bg-gradient-to-r from-[#DD3C27] to-[#F59888] text-white py-3 px-4 rounded-lg font-medium hover:from-[#c23420] hover:to-[#f28a7a] disabled:opacity-50 btn-enhanced flex items-center justify-center gap-2 shadow-lg"
+                        className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white py-3 px-4 rounded-lg font-medium hover:from-emerald-600 hover:to-emerald-700 disabled:opacity-50 btn-enhanced flex items-center justify-center gap-2 shadow-lg"
                       >
                         <Play className="w-5 h-5" />
                         {isLoading ? 'Clocking In...' : 'Clock In'}
@@ -669,7 +669,7 @@ export function TimeTracking() {
                         <button
                           onClick={handleClockOut}
                           disabled={isLoading}
-                          className="w-full bg-gradient-to-r from-[#F59888] to-[#F59888] text-white py-3 px-4 rounded-lg font-medium hover:from-[#f28a7a] hover:to-[#f28a7a] disabled:opacity-50 btn-enhanced flex items-center justify-center gap-2 shadow-lg"
+                          className="w-full bg-gradient-to-r from-rose-500 to-rose-600 text-white py-3 px-4 rounded-lg font-medium hover:from-rose-600 hover:to-rose-700 disabled:opacity-50 btn-enhanced flex items-center justify-center gap-2 shadow-lg"
                         >
                           <Square className="w-5 h-5" />
                           {isLoading ? 'Clocking Out...' : 'Clock Out'}
@@ -677,7 +677,7 @@ export function TimeTracking() {
                       )}
                         <button
                           onClick={() => setShowOvertimeModal(true)}
-                          className="w-full bg-gradient-to-r from-[#F5CE00] to-[#F5CE00] text-black py-3 px-4 rounded-lg font-medium hover:from-[#e6b800] hover:to-[#e6b800] btn-enhanced flex items-center justify-center gap-2 shadow-lg"
+                          className="w-full bg-gradient-to-r from-amber-500 to-amber-600 text-white py-3 px-4 rounded-lg font-medium hover:from-amber-600 hover:to-amber-700 btn-enhanced flex items-center justify-center gap-2 shadow-lg"
                         >
                           <Clock className="w-5 h-5" />
                           Request Overtime
@@ -686,61 +686,61 @@ export function TimeTracking() {
                     </div>
 
                     {/* Shift Information */}
-                    <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl p-6 border border-slate-700/50">
-                      <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                        <AlertCircle className="w-5 h-5 text-white" />
+                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 border border-slate-200/60 shadow-lg">
+                      <h4 className="text-lg font-semibold text-slate-800 mb-4 flex items-center gap-2">
+                        <AlertCircle className="w-5 h-5 text-slate-700" />
                         Shift Information
                       </h4>
                       
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-slate-700/30 p-4 rounded-lg border border-slate-600/50">
+                        <div className="bg-slate-50/80 p-4 rounded-lg border border-slate-200/60">
                           <div className="flex items-center gap-2 mb-2">
-                            <Clock className="w-4 h-4 text-[#DD3C27]" />
-                            <span className="text-[#DD3C27] font-medium">Regular Hours</span>
+                            <Clock className="w-4 h-4 text-indigo-500" />
+                            <span className="text-indigo-600 font-medium">Regular Hours</span>
                           </div>
-                          <p className="text-white font-semibold">7:00 AM - 3:30 PM</p>
-                          <p className="text-slate-400 text-sm">₱200 daily cap</p>
+                          <p className="text-slate-800 font-semibold">7:00 AM - 3:30 PM</p>
+                          <p className="text-slate-600 text-sm">₱200 daily cap</p>
                         </div>
                         
-                        <div className="bg-slate-700/30 p-4 rounded-lg border border-slate-600/50">
+                        <div className="bg-slate-50/80 p-4 rounded-lg border border-slate-200/60">
                           <div className="flex items-center gap-2 mb-2">
-                            <TrendingUp className="w-4 h-4 text-[#F5CE00]" />
-                            <span className="text-[#F5CE00] font-medium">Overtime Rate</span>
+                            <TrendingUp className="w-4 h-4 text-amber-500" />
+                            <span className="text-amber-600 font-medium">Overtime Rate</span>
                           </div>
-                          <p className="text-white font-semibold">₱35/hour</p>
-                          <p className="text-slate-400 text-sm">After 3:30 PM</p>
+                          <p className="text-slate-800 font-semibold">₱35/hour</p>
+                          <p className="text-slate-600 text-sm">After 3:30 PM</p>
                         </div>
                         
-                        <div className="bg-slate-700/30 p-4 rounded-lg border border-slate-600/50">
+                        <div className="bg-slate-50/80 p-4 rounded-lg border border-slate-200/60">
                           <div className="flex items-center gap-2 mb-2">
-                            <AlertCircle className="w-4 h-4 text-[#F59888]" />
-                            <span className="text-[#F59888] font-medium">Late Penalty</span>
+                            <AlertCircle className="w-4 h-4 text-rose-500" />
+                            <span className="text-rose-600 font-medium">Late Penalty</span>
                           </div>
-                          <p className="text-white font-semibold">₱23.53/hour</p>
-                          <p className="text-slate-400 text-sm">After 7:00 AM</p>
+                          <p className="text-slate-800 font-semibold">₱23.53/hour</p>
+                          <p className="text-slate-600 text-sm">After 7:00 AM</p>
                         </div>
                         
-                        <div className="bg-slate-700/30 p-4 rounded-lg border border-slate-600/50">
+                        <div className="bg-slate-50/80 p-4 rounded-lg border border-slate-200/60">
                           <div className="flex items-center gap-2 mb-2">
-                            <Home className="w-4 h-4 text-white" />
-                            <span className="text-white font-medium">Staff House</span>
+                            <Home className="w-4 h-4 text-slate-700" />
+                            <span className="text-slate-800 font-medium">Staff House</span>
                           </div>
                           {user?.staff_house ? (
                             <>
-                              <p className="text-[#F5CE00] font-semibold">Enrolled</p>
-                              <p className="text-slate-400 text-sm">₱250/week deduction</p>
+                              <p className="text-emerald-600 font-semibold">Enrolled</p>
+                              <p className="text-slate-600 text-sm">₱250/week deduction</p>
                             </>
                           ) : (
                             <>
-                              <p className="text-white font-semibold">Not Enrolled</p>
-                              <p className="text-slate-400 text-sm">No deduction</p>
+                              <p className="text-slate-800 font-semibold">Not Enrolled</p>
+                              <p className="text-slate-600 text-sm">No deduction</p>
                             </>
                           )}
                         </div>
                       </div>
                       
-                      <div className="mt-4 p-4 bg-slate-700/30 rounded-lg border border-slate-600/50">
-                        <p className="text-sm text-white">
+                      <div className="mt-4 p-4 bg-slate-50/80 rounded-lg border border-slate-200/60">
+                        <p className="text-sm text-slate-800">
                           <strong>Note:</strong> Base pay is capped at ₱200 for 8.5 hours. Work hours are counted from 7:00 AM onwards only.
                         </p>
                       </div>
@@ -757,26 +757,26 @@ export function TimeTracking() {
 
       {/* Notifications Modal */}
       {showNotifications && notifications.length > 0 && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-800/95 backdrop-blur-sm rounded-xl shadow-xl p-6 w-full max-w-md border border-slate-700/50">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl p-6 w-full max-w-md border border-slate-200/60">
             <div className="flex items-center gap-3 mb-4">
-              <AlertCircle className="w-6 h-6 text-[#DD3C27]" />
-              <h3 className="text-xl font-semibold text-white">Overtime Updates</h3>
+              <AlertCircle className="w-6 h-6 text-indigo-500" />
+              <h3 className="text-xl font-semibold text-slate-800">Overtime Updates</h3>
             </div>
             
             <div className="space-y-3 mb-6 max-h-60 overflow-y-auto">
               {notifications.map((notification, index) => (
                 <div key={index} className={`p-4 rounded-lg border ${
                   notification.overtime_approved 
-                    ? 'bg-[#F5CE00]/20 border-[#F5CE00]/50' 
-                    : 'bg-[#F59888]/20 border-[#F59888]/50'
+                    ? 'bg-emerald-50/80 border-emerald-200/60' 
+                    : 'bg-rose-50/80 border-rose-200/60'
                 }`}>
                   <span className={`font-semibold ${
-                    notification.overtime_approved ? 'text-[#F5CE00]' : 'text-[#F59888]'
+                    notification.overtime_approved ? 'text-emerald-700' : 'text-rose-700'
                   }`}>
                     {notification.overtime_approved ? 'Overtime Approved ✓' : 'Overtime Rejected ✗'}
                   </span>
-                  <p className="text-sm text-[#34256B]/70 mt-1">
+                  <p className="text-sm text-slate-600 mt-1">
                     {new Date(notification.clock_in).toLocaleDateString()}
                   </p>
                 </div>
@@ -788,7 +788,7 @@ export function TimeTracking() {
                 setShowNotifications(false);
                 setNotifications([]);
               }}
-              className="w-full bg-gradient-to-r from-[#DD3C27] to-[#F59888] text-white py-3 px-4 rounded-lg font-medium hover:from-[#c23420] hover:to-[#f28a7a] btn-enhanced"
+              className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-3 px-4 rounded-lg font-medium hover:from-indigo-600 hover:to-purple-700 btn-enhanced"
             >
               Got it!
             </button>
@@ -798,15 +798,15 @@ export function TimeTracking() {
 
       {/* Overtime Request Modal */}
       {showOvertimeModal && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-slate-800/95 backdrop-blur-sm rounded-xl shadow-xl p-6 w-full max-w-md border border-slate-700/50">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl p-6 w-full max-w-md border border-slate-200/60">
             <div className="flex items-center gap-3 mb-4">
-              <MessageSquare className="w-6 h-6 text-[#F5CE00]" />
-              <h3 className="text-xl font-semibold text-white">Request Overtime</h3>
+              <MessageSquare className="w-6 h-6 text-amber-500" />
+              <h3 className="text-xl font-semibold text-slate-800">Request Overtime</h3>
             </div>
             
-            <div className="bg-[#F5CE00]/20 p-4 rounded-lg border border-[#F5CE00]/50 mb-4">
-              <p className="text-sm text-white">
+            <div className="bg-amber-50/80 p-4 rounded-lg border border-amber-200/60 mb-4">
+              <p className="text-sm text-slate-800">
                 {isAfterShiftHours() 
                   ? `Current overtime: ${formatTimeDisplay(overtimeTime)} past 4:00 PM`
                   : 'Submit a request for overtime work after 4:00 PM'
@@ -815,13 +815,13 @@ export function TimeTracking() {
             </div>
             
             <div className="mb-6">
-              <label className="block text-sm font-medium text-white mb-2">
-                Reason for Overtime <span className="text-[#DD3C27]">*</span>
+              <label className="block text-sm font-medium text-slate-800 mb-2">
+                Reason for Overtime <span className="text-rose-500">*</span>
               </label>
               <textarea
                 value={overtimeNote}
                 onChange={(e) => setOvertimeNote(e.target.value)}
-                className="w-full p-3 bg-slate-700/50 border border-slate-600 rounded-lg text-white placeholder-slate-400 resize-none focus:ring-2 focus:ring-[#DD3C27] focus:border-transparent"
+                className="w-full p-3 bg-slate-50/80 border border-slate-200 rounded-lg text-slate-800 placeholder-slate-500 resize-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 rows={4}
                 placeholder="Please explain the reason for overtime work..."
                 required
@@ -834,14 +834,14 @@ export function TimeTracking() {
                   setShowOvertimeModal(false);
                   setOvertimeNote('');
                 }}
-                className="flex-1 bg-slate-700/50 text-slate-300 py-3 px-4 rounded-lg font-medium hover:bg-slate-600/50 transition-all duration-200"
+                className="flex-1 bg-slate-200/80 text-slate-700 py-3 px-4 rounded-lg font-medium hover:bg-slate-300/80 transition-all duration-200"
               >
                 Cancel
               </button>
               <button
                 onClick={submitOvertimeRequest}
                 disabled={!overtimeNote.trim() || isLoading}
-                className="flex-1 bg-gradient-to-r from-[#DD3C27] to-[#F59888] text-white py-3 px-4 rounded-lg font-medium hover:from-[#c23420] hover:to-[#f28a7a] disabled:opacity-50 btn-enhanced"
+                className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-3 px-4 rounded-lg font-medium hover:from-indigo-600 hover:to-purple-700 disabled:opacity-50 btn-enhanced"
               >
                 {isLoading ? 'Submitting...' : 'Submit Request'}
               </button>
