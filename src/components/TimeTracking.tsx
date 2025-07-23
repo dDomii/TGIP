@@ -399,7 +399,7 @@ export function TimeTracking() {
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6 min-h-screen bg-gradient-to-br from-[#34256B] via-[#2a1f5a] to-[#1e1749]">
       {/* Header Section */}
-      <div className="bg-white/95 backdrop-blur-sm rounded-xl p-6 border border-[#34256B]/20 shadow-lg">
+      <div className="bg-[#34256B]/5 backdrop-blur-sm rounded-xl p-6 border border-[#34256B]/30 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div className="bg-gradient-to-br from-[#DD3C27] to-[#F59888] p-3 rounded-xl shadow-lg">
@@ -418,7 +418,7 @@ export function TimeTracking() {
       </div>
 
       {/* Navigation Tabs */}
-      <div className="bg-white/95 backdrop-blur-sm rounded-xl border border-[#34256B]/20 shadow-lg overflow-hidden">
+      <div className="bg-[#34256B]/5 backdrop-blur-sm rounded-xl border border-[#34256B]/30 shadow-lg overflow-hidden">
         <div className="border-b border-[#34256B]/20">
           <nav className="flex justify-center p-4">
             <div className="bg-[#34256B]/10 p-1 rounded-xl flex gap-2">
@@ -449,7 +449,7 @@ export function TimeTracking() {
               {/* Progress Tracker */}
               {hoursProgress && (
                 <div className="lg:col-span-1">
-                  <div className="bg-gradient-to-br from-[#34256B]/20 to-[#34256B]/10 rounded-xl p-6 border border-[#34256B]/30 h-full">
+                  <div className="bg-gradient-to-br from-[#34256B]/15 to-[#34256B]/5 rounded-xl p-6 border border-[#34256B]/30 h-full">
                     <div className="flex items-center gap-3 mb-6">
                       <Target className="w-6 h-6 text-[#34256B]" />
                       <h3 className="text-lg font-semibold text-[#34256B]">Hours Progress</h3>
@@ -496,7 +496,7 @@ export function TimeTracking() {
                           {hoursProgress.isCompleted ? 'Completed!' : `${Number(hoursProgress.remainingHours).toFixed(1)}h`}
                         </span>
                       </div>
-                      <div className="mt-4 p-4 bg-[#34256B]/10 rounded-lg border border-[#34256B]/30">
+                      <div className="mt-4 p-4 bg-[#34256B]/8 rounded-lg border border-[#34256B]/30">
                         <p className="text-sm text-[#34256B]">
                           <strong>Motivational Note:</strong>
                         </p>
@@ -523,7 +523,7 @@ export function TimeTracking() {
               <div className={`${hoursProgress ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
                 <div className="grid lg:grid-cols-2 gap-6 h-full">
                   {/* Today's Activity */}
-                  <div className="bg-white/90 backdrop-blur-sm rounded-xl p-6 border border-[#34256B]/20">
+                  <div className="bg-[#34256B]/5 backdrop-blur-sm rounded-xl p-6 border border-[#34256B]/30">
                     <div className="flex items-center gap-3 mb-6">
                       <Calendar className="w-6 h-6 text-[#DD3C27]" />
                       <h3 className="text-lg font-semibold text-[#34256B]">Today's Activity</h3>
@@ -533,7 +533,7 @@ export function TimeTracking() {
                       <div className="space-y-6">
                         {/* Clock Times */}
                         <div className="grid grid-cols-2 gap-4">
-                          <div className="bg-[#DD3C27]/10 p-4 rounded-lg border border-[#DD3C27]/30">
+                          <div className="bg-[#DD3C27]/8 p-4 rounded-lg border border-[#DD3C27]/30">
                             <div className="flex items-center gap-2 mb-2">
                               <Play className="w-4 h-4 text-[#DD3C27]" />
                               <span className="text-sm text-[#DD3C27] font-medium">Clock In</span>
@@ -548,7 +548,7 @@ export function TimeTracking() {
                             )}
                           </div>
 
-                          <div className="bg-[#F59888]/10 p-4 rounded-lg border border-[#F59888]/30">
+                          <div className="bg-[#F59888]/8 p-4 rounded-lg border border-[#F59888]/30">
                             <div className="flex items-center gap-2 mb-2">
                               <Square className="w-4 h-4 text-[#F59888]" />
                               <span className="text-sm text-[#F59888] font-medium">Clock Out</span>
@@ -566,7 +566,7 @@ export function TimeTracking() {
                         </div>
 
                         {/* Worked Time Display */}
-                        <div className="bg-[#34256B]/10 p-4 rounded-lg border border-[#34256B]/30">
+                        <div className="bg-[#34256B]/8 p-4 rounded-lg border border-[#34256B]/30">
                           <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                               <Timer className="w-5 h-5 text-[#34256B]" />
@@ -586,7 +586,7 @@ export function TimeTracking() {
 
                         {/* Status Alerts */}
                         {isAfterShiftHours() && !todayEntry.clock_out && (
-                          <div className="bg-[#F5CE00]/20 p-4 rounded-lg border border-[#F5CE00]/50">
+                          <div className="bg-[#F5CE00]/15 p-4 rounded-lg border border-[#F5CE00]/50">
                             <div className="flex items-center gap-3">
                               <Zap className="w-5 h-5 text-[#F5CE00]" />
                               <div>
@@ -600,10 +600,10 @@ export function TimeTracking() {
                         {todayEntry.overtime_requested == true && (
                           <div className={`p-4 rounded-lg border ${
                             todayEntry.overtime_approved === null || todayEntry.overtime_approved === undefined
-                              ? 'bg-[#F5CE00]/20 border-[#F5CE00]/50'
+                              ? 'bg-[#F5CE00]/15 border-[#F5CE00]/50'
                               : todayEntry.overtime_approved 
-                                ? 'bg-[#F5CE00]/20 border-[#F5CE00]/50'
-                                : 'bg-[#F59888]/20 border-[#F59888]/50'
+                                ? 'bg-[#F5CE00]/15 border-[#F5CE00]/50'
+                                : 'bg-[#F59888]/15 border-[#F59888]/50'
                           }`}>
                             <div className="flex items-center gap-3">
                               <AlertCircle className={`w-5 h-5 ${
@@ -646,7 +646,7 @@ export function TimeTracking() {
                   {/* Actions & Info Panel */}
                   <div className="space-y-6">
                     {/* Action Buttons */}
-                    <div className="bg-white/90 backdrop-blur-sm rounded-xl p-6 border border-[#34256B]/20">
+                    <div className="bg-[#34256B]/5 backdrop-blur-sm rounded-xl p-6 border border-[#34256B]/30">
                       <h4 className="text-lg font-semibold text-[#34256B] mb-4 flex items-center gap-2">
                         <Zap className="w-5 h-5 text-[#DD3C27]" />
                         Quick Actions
@@ -686,14 +686,14 @@ export function TimeTracking() {
                     </div>
 
                     {/* Shift Information */}
-                    <div className="bg-white/90 backdrop-blur-sm rounded-xl p-6 border border-[#34256B]/20">
+                    <div className="bg-[#34256B]/5 backdrop-blur-sm rounded-xl p-6 border border-[#34256B]/30">
                       <h4 className="text-lg font-semibold text-[#34256B] mb-4 flex items-center gap-2">
                         <AlertCircle className="w-5 h-5 text-[#34256B]" />
                         Shift Information
                       </h4>
                       
                       <div className="grid grid-cols-2 gap-4">
-                        <div className="bg-[#34256B]/10 p-4 rounded-lg border border-[#34256B]/20">
+                        <div className="bg-[#34256B]/8 p-4 rounded-lg border border-[#34256B]/30">
                           <div className="flex items-center gap-2 mb-2">
                             <Clock className="w-4 h-4 text-[#DD3C27]" />
                             <span className="text-[#DD3C27] font-medium">Regular Hours</span>
@@ -702,7 +702,7 @@ export function TimeTracking() {
                           <p className="text-[#34256B]/70 text-sm">₱200 daily cap</p>
                         </div>
                         
-                        <div className="bg-[#34256B]/10 p-4 rounded-lg border border-[#34256B]/20">
+                        <div className="bg-[#34256B]/8 p-4 rounded-lg border border-[#34256B]/30">
                           <div className="flex items-center gap-2 mb-2">
                             <TrendingUp className="w-4 h-4 text-[#F5CE00]" />
                             <span className="text-[#F5CE00] font-medium">Overtime Rate</span>
@@ -711,7 +711,7 @@ export function TimeTracking() {
                           <p className="text-[#34256B]/70 text-sm">After 3:30 PM</p>
                         </div>
                         
-                        <div className="bg-[#34256B]/10 p-4 rounded-lg border border-[#34256B]/20">
+                        <div className="bg-[#34256B]/8 p-4 rounded-lg border border-[#34256B]/30">
                           <div className="flex items-center gap-2 mb-2">
                             <AlertCircle className="w-4 h-4 text-[#F59888]" />
                             <span className="text-[#F59888] font-medium">Late Penalty</span>
@@ -720,7 +720,7 @@ export function TimeTracking() {
                           <p className="text-[#34256B]/70 text-sm">After 7:00 AM</p>
                         </div>
                         
-                        <div className="bg-[#34256B]/10 p-4 rounded-lg border border-[#34256B]/20">
+                        <div className="bg-[#34256B]/8 p-4 rounded-lg border border-[#34256B]/30">
                           <div className="flex items-center gap-2 mb-2">
                             <Home className="w-4 h-4 text-[#34256B]" />
                             <span className="text-[#34256B] font-medium">Staff House</span>
@@ -739,7 +739,7 @@ export function TimeTracking() {
                         </div>
                       </div>
                       
-                      <div className="mt-4 p-4 bg-[#34256B]/10 rounded-lg border border-[#34256B]/30">
+                      <div className="mt-4 p-4 bg-[#34256B]/8 rounded-lg border border-[#34256B]/30">
                         <p className="text-sm text-[#34256B]">
                           <strong>Note:</strong> Base pay is capped at ₱200 for 8.5 hours. Work hours are counted from 7:00 AM onwards only.
                         </p>
@@ -758,7 +758,7 @@ export function TimeTracking() {
       {/* Notifications Modal */}
       {showNotifications && notifications.length > 0 && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-xl p-6 w-full max-w-md border border-[#34256B]/20">
+          <div className="bg-[#34256B]/5 backdrop-blur-sm rounded-xl shadow-xl p-6 w-full max-w-md border border-[#34256B]/30">
             <div className="flex items-center gap-3 mb-4">
               <AlertCircle className="w-6 h-6 text-[#DD3C27]" />
               <h3 className="text-xl font-semibold text-[#34256B]">Overtime Updates</h3>
@@ -768,8 +768,8 @@ export function TimeTracking() {
               {notifications.map((notification, index) => (
                 <div key={index} className={`p-4 rounded-lg border ${
                   notification.overtime_approved 
-                    ? 'bg-[#F5CE00]/20 border-[#F5CE00]/50' 
-                    : 'bg-[#F59888]/20 border-[#F59888]/50'
+                    ? 'bg-[#F5CE00]/15 border-[#F5CE00]/50' 
+                    : 'bg-[#F59888]/15 border-[#F59888]/50'
                 }`}>
                   <span className={`font-semibold ${
                     notification.overtime_approved ? 'text-[#F5CE00]' : 'text-[#F59888]'
@@ -799,13 +799,13 @@ export function TimeTracking() {
       {/* Overtime Request Modal */}
       {showOvertimeModal && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white/95 backdrop-blur-sm rounded-xl shadow-xl p-6 w-full max-w-md border border-[#34256B]/20">
+          <div className="bg-[#34256B]/5 backdrop-blur-sm rounded-xl shadow-xl p-6 w-full max-w-md border border-[#34256B]/30">
             <div className="flex items-center gap-3 mb-4">
               <MessageSquare className="w-6 h-6 text-[#F5CE00]" />
               <h3 className="text-xl font-semibold text-[#34256B]">Request Overtime</h3>
             </div>
             
-            <div className="bg-[#F5CE00]/20 p-4 rounded-lg border border-[#F5CE00]/50 mb-4">
+            <div className="bg-[#F5CE00]/15 p-4 rounded-lg border border-[#F5CE00]/50 mb-4">
               <p className="text-sm text-[#34256B]">
                 {isAfterShiftHours() 
                   ? `Current overtime: ${formatTimeDisplay(overtimeTime)} past 4:00 PM`
@@ -821,7 +821,7 @@ export function TimeTracking() {
               <textarea
                 value={overtimeNote}
                 onChange={(e) => setOvertimeNote(e.target.value)}
-                className="w-full p-3 bg-white border-2 border-[#34256B]/20 rounded-lg text-[#34256B] placeholder-[#34256B]/50 resize-none focus:ring-2 focus:ring-[#DD3C27] focus:border-[#DD3C27]"
+                className="w-full p-3 bg-[#34256B]/5 border-2 border-[#34256B]/30 rounded-lg text-[#34256B] placeholder-[#34256B]/50 resize-none focus:ring-2 focus:ring-[#DD3C27] focus:border-[#DD3C27]"
                 rows={4}
                 placeholder="Please explain the reason for overtime work..."
                 required
@@ -834,7 +834,7 @@ export function TimeTracking() {
                   setShowOvertimeModal(false);
                   setOvertimeNote('');
                 }}
-                className="flex-1 bg-[#34256B]/10 text-[#34256B] py-3 px-4 rounded-lg font-medium hover:bg-[#34256B]/20 transition-all duration-200 border border-[#34256B]/20"
+                className="flex-1 bg-[#34256B]/8 text-[#34256B] py-3 px-4 rounded-lg font-medium hover:bg-[#34256B]/15 transition-all duration-200 border border-[#34256B]/30"
               >
                 Cancel
               </button>
