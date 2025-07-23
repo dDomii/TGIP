@@ -94,14 +94,15 @@ export async function calculateWeeklyPayroll(userId, weekStart) {
       // Add to total hours - actual worked hours from 7:00 AM
       totalHours += workedHours;
     });
-
+      console.log("Hour Rate:::", hourlyRate);
+      console.log("Under Time:::", undertimeDeduction);
     // Base salary is always ₱200
     const baseSalary = 200;
     const overtimePay = overtimeHours * 35;
     const undertimeDeduction = undertimeHours * hourlyRate;
     const staffHouseDeduction = userData.staff_house ? 250 : 0;
-    
-    const totalSalary = baseSalary + overtimePay - undertimeDeduction - staffHouseDeduction;
+
+    const totalSalary = baseSalary + overtimePay - undertimeDeduction;
 
     return {
       totalHours,
@@ -115,8 +116,10 @@ export async function calculateWeeklyPayroll(userId, weekStart) {
       clockInTime: firstClockIn ? formatDateTimeForMySQL(firstClockIn) : null,
       clockOutTime: lastClockOut ? formatDateTimeForMySQL(lastClockOut) : null
     };
+
   } catch (error) {
     console.error('Calculate payroll error:', error);
+
     return null;
   }
 }
@@ -340,6 +343,12 @@ export async function calculatePayrollForSpecificDays(userId, selectedDates) {
         undertimeHours += lateHours;
       }
 
+      // Check for undertime (Before 3:30 PM)
+      if (clockOut < shiftEnd) {
+        const earlyOut = (shiftEnd - clockOut) / (1000 * 60 * 60);
+        undertimeHours += earlyOut;
+      }
+
       // Handle overtime calculation
       if (entry.overtime_requested && entry.overtime_approved) {
         if (clockOut > shiftEnd) {
@@ -362,7 +371,7 @@ export async function calculatePayrollForSpecificDays(userId, selectedDates) {
     const workingDays = entries.filter(entry => entry.clock_out).length;
     const staffHouseDeduction = userData.staff_house ? (250 * workingDays / 5) : 0; // Prorated based on actual working days
     
-    const totalSalary = baseSalary + overtimePay - undertimeDeduction - staffHouseDeduction;
+    const totalSalary = baseSalary + overtimePay - undertimeDeduction;
 
     return {
       totalHours,
@@ -475,7 +484,7 @@ export async function calculatePayrollForDateRange(userId, startDate, endDate) {
     const daysDiff = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
     const staffHouseDeduction = userData.staff_house ? (250 * daysDiff / 5) : 0; // Prorated
     
-    const totalSalary = baseSalary + overtimePay - undertimeDeduction - staffHouseDeduction;
+    const totalSalary = baseSalary + overtimePay - undertimeDeduction;
 
     return {
       totalHours,
@@ -607,7 +616,7 @@ export async function updatePayrollEntry(payslipId, updateData) {
   try {
     const { clockIn, clockOut, totalHours, overtimeHours, undertimeHours, baseSalary, overtimePay, undertimeDeduction, staffHouseDeduction } = updateData;
     
-    const totalSalary = baseSalary + overtimePay - undertimeDeduction - staffHouseDeduction;
+    const totalSalary = baseSalary + overtimePay - undertimeDeduction;
 
     // Format datetime values for MySQL
     const formattedClockIn = clockIn ? formatDateTimeForMySQL(new Date(clockIn)) : null;
