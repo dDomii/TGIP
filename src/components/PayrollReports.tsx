@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { API_ENDPOINTS, buildApiUrl } from '../config/api';
-import { Calendar, Download, Edit3, Save, X, AlertTriangle, Calculator, PhilippinePeso, Users, Clock, TrendingUp, Filter, Search, FileText, Plus, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Calendar, Download, FileText, Users, PhilippinePeso, Clock, Edit3, Save, X, AlertTriangle, CheckCircle, Filter, Search, Eye, Trash2, Play } from 'lucide-react';
+import { Calculator } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import { autoTable } from 'jspdf-autotable';
 import { endOfWeek } from 'date-fns';
@@ -607,8 +608,8 @@ export function PayrollReports() {
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-white font-['Gotham_Black'] tracking-wide">PAYROLL REPORTS</h2>
-          <p className="text-slate-400 font-['Gotham_Book']">Generate and manage payroll for selected periods</p>
+          <h2 className="text-2xl font-bold text-white">Payroll Management</h2>
+          <p className="text-slate-400">Generate and manage employee payslips</p>
         </div>
       </div>
 
@@ -701,7 +702,7 @@ export function PayrollReports() {
                     type="checkbox"
                     checked={selectedUsers.length === 0}
                     onChange={() => setSelectedUsers([])}
-                    className="w-full p-3 bg-[#2C3E50] border border-[#4A5B7C] rounded-lg focus:ring-2 focus:ring-[#F39C8B] focus:border-transparent text-white font-['Gotham_Book']"
+                    className="rounded border-slate-600 text-emerald-600 focus:ring-emerald-500 bg-slate-700/50"
                   />
                   <span className="text-sm font-medium text-emerald-400">All Users</span>
                 </label>
@@ -1229,16 +1230,14 @@ export function PayrollReports() {
               <div className="flex items-start gap-3">
                 <AlertTriangle className="w-5 h-5 text-blue-400 mt-0.5" />
                 <div>
-                  <label className="block text-sm font-medium text-white mb-2 font-['Gotham_Light']">
+                  <p className="text-sm font-medium text-blue-400 mb-1">Payroll Calculation Rules</p>
                   <ul className="text-xs text-blue-300 space-y-1">
                     <li>• Work hours only count from 7:00 AM onwards</li>
                     <li>• Base pay is always ₱200, deductions applied for undertime</li>
-                  <p className="text-xs text-slate-300 mt-1 font-['Gotham_Book']"></p>
+                    <li>• Overtime rate is ₱35/hour after 3:30 PM</li>
                     <li>• Late clock-in (after 7:00 AM) incurs undertime deduction</li>
                   </ul>
-</label>
                 </div>
-
               </div>
             </div>
             
@@ -1290,20 +1289,20 @@ export function PayrollReports() {
                   setShowDeleteModal(false);
                   setDeletingEntry(null);
                 }}
-                className="flex-1 bg-[#2C3E50] text-slate-300 py-2 px-4 rounded-lg font-medium hover:bg-[#4A5B7C] transition-all duration-200 font-['Gotham_Book']"
+                className="flex-1 bg-slate-700/50 text-slate-300 py-2 px-4 rounded-lg font-medium hover:bg-slate-600/50 transition-all duration-200"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteEntry}
                 className="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white py-2 px-4 rounded-lg font-medium hover:from-red-600 hover:to-red-700 transition-all duration-200"
-                className="flex-1 bg-gradient-to-r from-[#F39C8B] to-[#F5B7B1] text-white py-2 px-4 rounded-lg font-medium hover:from-[#F5B7B1] hover:to-[#F8C471] disabled:opacity-50 btn-enhanced font-['Gotham_Book']"
->
+              >
                 Delete Entry
               </button>
             </div>
           </div>
-    </div>
+        </div>
       )}
     </div>
   );
+}
