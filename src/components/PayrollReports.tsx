@@ -1303,7 +1303,8 @@ export function PayrollReports() {
               </button>
             </div>
           </div>
-    
+        </div>
       )}
     </div>
   );
+}
