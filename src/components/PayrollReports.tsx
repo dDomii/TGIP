@@ -69,7 +69,6 @@ export function PayrollReports() {
   const [bulkTotalType, setBulkTotalType] = useState<'fixed' | 'percentage'>('fixed');
   const [bulkTotalPercentage, setBulkTotalPercentage] = useState('');
   const [groupByUser, setGroupByUser] = useState(false);
-  const [groupByUser, setGroupByUser] = useState(false);
   const { token } = useAuth();
 
   useEffect(() => {
@@ -615,7 +614,7 @@ export function PayrollReports() {
       </div>
 
       {/* Generation Mode Selection */}
-      <div className="bg-slate-800/90 backdrop-blur-sm rounded-xl p-6 mb-6 shadow-lg border border-slate-700/50">
+      <div className="bg-[#3B4A6B] backdrop-blur-sm rounded-xl p-6 mb-6 shadow-lg border border-[#4A5B7C]">
         <h3 className="text-lg font-semibold text-white mb-4">Payroll Generation Mode</h3>
         
         <div className="flex gap-4 mb-6">
