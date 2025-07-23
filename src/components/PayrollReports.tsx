@@ -703,7 +703,7 @@ export function PayrollReports() {
                     type="checkbox"
                     checked={selectedUsers.length === 0}
                     onChange={() => setSelectedUsers([])}
-                    className="w-full p-3 bg-[#2C3E50] border border-[#4A5B7C] rounded-lg focus:ring-2 focus:ring-[#F5CE00] focus:border-transparent text-white font-['Gotham_Book']"
+                    className="w-full p-3 bg-[#2C3E50] border border-[#4A5B7C] rounded-lg focus:ring-2 focus:ring-[#F39C8B] focus:border-transparent text-white font-['Gotham_Book']"
                   />
                   <span className="text-sm font-medium text-emerald-400">All Users</span>
                 </label>
@@ -1235,13 +1235,13 @@ export function PayrollReports() {
                   <ul className="text-xs text-blue-300 space-y-1">
                     <li>• Work hours only count from 7:00 AM onwards</li>
                     <li>• Base pay is always ₱200, deductions applied for undertime</li>
-                    <li>• Overtime rate is ₱35/hour after 3:30 PM</li>
+                  <p className="text-xs text-slate-300 mt-1 font-['Gotham_Book']">
                     <li>• Late clock-in (after 7:00 AM) incurs undertime deduction</li>
                   </ul>
                 </div>
               </div>
             </div>
-                  <label className="block text-sm font-medium text-white mb-2 font-['Gotham_Light']">
+            
             <div className="flex gap-3">
               <button
                 onClick={() => {
@@ -1290,14 +1290,14 @@ export function PayrollReports() {
                   setShowDeleteModal(false);
                   setDeletingEntry(null);
                 }}
-                className="flex-1 bg-slate-700/50 text-slate-300 py-2 px-4 rounded-lg font-medium hover:bg-slate-600/50 transition-all duration-200"
+                className="flex-1 bg-[#2C3E50] text-slate-300 py-2 px-4 rounded-lg font-medium hover:bg-[#4A5B7C] transition-all duration-200 font-['Gotham_Book']"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteEntry}
                 className="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white py-2 px-4 rounded-lg font-medium hover:from-red-600 hover:to-red-700 transition-all duration-200"
-              >
+                className="flex-1 bg-gradient-to-r from-[#F39C8B] to-[#F5B7B1] text-white py-2 px-4 rounded-lg font-medium hover:from-[#F5B7B1] hover:to-[#F8C471] disabled:opacity-50 btn-enhanced font-['Gotham_Book']"
                 Delete Entry
               </button>
             </div>
@@ -1306,4 +1306,3 @@ export function PayrollReports() {
       )}
     </div>
   );
-}
