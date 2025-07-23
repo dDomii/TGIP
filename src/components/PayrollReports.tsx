@@ -1233,10 +1233,12 @@ export function PayrollReports() {
                   <ul className="text-xs text-blue-300 space-y-1">
                     <li>• Work hours only count from 7:00 AM onwards</li>
                     <li>• Base pay is always ₱200, deductions applied for undertime</li>
-                  <p className="text-xs text-slate-300 mt-1 font-['Gotham_Book']">
+                  <p className="text-xs text-slate-300 mt-1 font-['Gotham_Book']"></p>
                     <li>• Late clock-in (after 7:00 AM) incurs undertime deduction</li>
                   </ul>
+</label>
                 </div>
+
               </div>
             </div>
             
